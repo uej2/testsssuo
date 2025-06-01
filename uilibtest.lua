@@ -1,25 +1,22 @@
--- Kali Hub UI Library
--- Clean, modern UI library for Roblox with rounded edges and smooth animations
-
+-- Kali Hub UI Library - Fixed with Content and Text Strokes
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 
 local KaliHub = {}
 
--- Colors and styling
+-- Colors
 local Colors = {
     Background = Color3.fromRGB(30, 30, 40),
-    SecondaryBackground = Color3.fromRGB(35, 35, 45),
-    TertiaryBackground = Color3.fromRGB(40, 40, 50),
+    Secondary = Color3.fromRGB(35, 35, 45),
+    Tertiary = Color3.fromRGB(40, 40, 50),
     Border = Color3.fromRGB(70, 70, 80),
     Text = Color3.fromRGB(240, 240, 245),
     SubText = Color3.fromRGB(180, 180, 190),
     KaliPink = Color3.fromRGB(255, 182, 193),
     HubWhite = Color3.fromRGB(255, 255, 255),
     AccentHover = Color3.fromRGB(255, 192, 203),
-    Success = Color3.fromRGB(120, 220, 120),
-    Warning = Color3.fromRGB(255, 220, 120)
+    Success = Color3.fromRGB(120, 220, 120)
 }
 
 -- Animation settings
@@ -36,15 +33,13 @@ local function createStroke(thickness, color)
     local stroke = Instance.new("UIStroke")
     stroke.Thickness = thickness or 1
     stroke.Color = color or Colors.Border
-    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
     return stroke
 end
 
 local function createTextStroke(thickness, color)
     local stroke = Instance.new("UIStroke")
-    stroke.Thickness = thickness or 2
+    stroke.Thickness = thickness or 1
     stroke.Color = color or Color3.fromRGB(0, 0, 0)
-    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
     return stroke
 end
 
@@ -65,7 +60,6 @@ function KaliHub:CreateWindow(config)
     screenGui.Name = "KaliHub"
     screenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
     screenGui.ResetOnSpawn = false
-    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     
     -- Main frame
     local mainFrame = Instance.new("Frame")
@@ -75,57 +69,38 @@ function KaliHub:CreateWindow(config)
     mainFrame.BackgroundColor3 = Colors.Background
     mainFrame.BorderSizePixel = 0
     mainFrame.Parent = screenGui
-    mainFrame.ZIndex = 1
     
     createCorner(12).Parent = mainFrame
     createStroke(2, Colors.Border).Parent = mainFrame
-    
-    -- Drop shadow
-    local shadow = Instance.new("ImageLabel")
-    shadow.Name = "Shadow"
-    shadow.BackgroundTransparency = 1
-    shadow.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
-    shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-    shadow.ImageTransparency = 0.8
-    shadow.Size = UDim2.new(1, 20, 1, 20)
-    shadow.Position = UDim2.new(0, -10, 0, -10)
-    shadow.ZIndex = 0
-    shadow.Parent = mainFrame
     
     -- Title bar
     local titleBar = Instance.new("Frame")
     titleBar.Name = "TitleBar"
     titleBar.Size = UDim2.new(1, 0, 0, 55)
     titleBar.Position = UDim2.new(0, 0, 0, 0)
-    titleBar.BackgroundColor3 = Colors.SecondaryBackground
+    titleBar.BackgroundColor3 = Colors.Secondary
     titleBar.BorderSizePixel = 0
     titleBar.Parent = mainFrame
-    titleBar.ZIndex = 2
     
     createCorner(12).Parent = titleBar
-    createStroke(1, Colors.Border).Parent = titleBar
     
-    -- Fix corner clipping for title bar
-    local titleCornerFix = Instance.new("Frame")
-    titleCornerFix.Size = UDim2.new(1, 0, 0, 12)
-    titleCornerFix.Position = UDim2.new(0, 0, 1, -12)
-    titleCornerFix.BackgroundColor3 = Colors.SecondaryBackground
-    titleCornerFix.BorderSizePixel = 0
-    titleCornerFix.Parent = titleBar
-    titleCornerFix.ZIndex = 1
+    -- Fix corner clipping
+    local cornerFix = Instance.new("Frame")
+    cornerFix.Size = UDim2.new(1, 0, 0, 12)
+    cornerFix.Position = UDim2.new(0, 0, 1, -12)
+    cornerFix.BackgroundColor3 = Colors.Secondary
+    cornerFix.BorderSizePixel = 0
+    cornerFix.Parent = titleBar
     
-    -- Title frame for better text positioning
-    local titleFrame = Instance.new("Frame")
-    titleFrame.Name = "TitleFrame"
-    titleFrame.Size = UDim2.new(0, 200, 1, 0)
-    titleFrame.Position = UDim2.new(0, 20, 0, 0)
-    titleFrame.BackgroundTransparency = 1
-    titleFrame.Parent = titleBar
-    titleFrame.ZIndex = 3
+    -- Title container
+    local titleContainer = Instance.new("Frame")
+    titleContainer.Size = UDim2.new(0, 200, 1, 0)
+    titleContainer.Position = UDim2.new(0, 20, 0, 0)
+    titleContainer.BackgroundTransparency = 1
+    titleContainer.Parent = titleBar
     
-    -- "Kali" text (pink)
+    -- "Kali" text (pink with stroke)
     local kaliText = Instance.new("TextLabel")
-    kaliText.Name = "KaliText"
     kaliText.Text = "Kali"
     kaliText.Font = Enum.Font.GothamBold
     kaliText.TextSize = 20
@@ -135,14 +110,12 @@ function KaliHub:CreateWindow(config)
     kaliText.Position = UDim2.new(0, 0, 0, 0)
     kaliText.TextXAlignment = Enum.TextXAlignment.Left
     kaliText.TextYAlignment = Enum.TextYAlignment.Center
-    kaliText.Parent = titleFrame
-    kaliText.ZIndex = 4
+    kaliText.Parent = titleContainer
     
     createTextStroke(2, Color3.fromRGB(15, 15, 25)).Parent = kaliText
     
-    -- "Hub" text (white)
+    -- "Hub" text (white with stroke)
     local hubText = Instance.new("TextLabel")
-    hubText.Name = "HubText"
     hubText.Text = " Hub"
     hubText.Font = Enum.Font.GothamBold
     hubText.TextSize = 20
@@ -152,14 +125,12 @@ function KaliHub:CreateWindow(config)
     hubText.Position = UDim2.new(0, 45, 0, 0)
     hubText.TextXAlignment = Enum.TextXAlignment.Left
     hubText.TextYAlignment = Enum.TextYAlignment.Center
-    hubText.Parent = titleFrame
-    hubText.ZIndex = 4
+    hubText.Parent = titleContainer
     
     createTextStroke(2, Color3.fromRGB(15, 15, 25)).Parent = hubText
     
     -- Close button
     local closeButton = Instance.new("TextButton")
-    closeButton.Name = "CloseButton"
     closeButton.Text = "×"
     closeButton.Font = Enum.Font.GothamBold
     closeButton.TextSize = 22
@@ -169,103 +140,47 @@ function KaliHub:CreateWindow(config)
     closeButton.Position = UDim2.new(1, -45, 0.5, -17.5)
     closeButton.BorderSizePixel = 0
     closeButton.Parent = titleBar
-    closeButton.ZIndex = 4
     
     createCorner(8).Parent = closeButton
-    createStroke(1, Colors.Border).Parent = closeButton
     
     -- Content area
     local contentFrame = Instance.new("Frame")
-    contentFrame.Name = "ContentFrame"
     contentFrame.Size = UDim2.new(1, 0, 1, -55)
     contentFrame.Position = UDim2.new(0, 0, 0, 55)
     contentFrame.BackgroundTransparency = 1
     contentFrame.Parent = mainFrame
-    contentFrame.ZIndex = 2
     
     -- Sidebar
     local sidebar = Instance.new("Frame")
-    sidebar.Name = "Sidebar"
     sidebar.Size = UDim2.new(0, 220, 1, -15)
     sidebar.Position = UDim2.new(0, 15, 0, 15)
-    sidebar.BackgroundColor3 = Colors.SecondaryBackground
+    sidebar.BackgroundColor3 = Colors.Secondary
     sidebar.BorderSizePixel = 0
     sidebar.Parent = contentFrame
-    sidebar.ZIndex = 3
     
     createCorner(10).Parent = sidebar
     createStroke(1, Colors.Border).Parent = sidebar
     
     -- Main content area
     local mainContent = Instance.new("Frame")
-    mainContent.Name = "MainContent"
     mainContent.Size = UDim2.new(1, -250, 1, -15)
     mainContent.Position = UDim2.new(0, 250, 0, 15)
-    mainContent.BackgroundColor3 = Colors.TertiaryBackground
+    mainContent.BackgroundColor3 = Colors.Tertiary
     mainContent.BorderSizePixel = 0
     mainContent.Parent = contentFrame
-    mainContent.ZIndex = 3
     
     createCorner(10).Parent = mainContent
     createStroke(1, Colors.Border).Parent = mainContent
     
-    -- Content header
-    local contentHeader = Instance.new("Frame")
-    contentHeader.Name = "ContentHeader"
-    contentHeader.Size = UDim2.new(1, 0, 0, 50)
-    contentHeader.BackgroundColor3 = Colors.SecondaryBackground
-    contentHeader.BorderSizePixel = 0
-    contentHeader.Parent = mainContent
-    contentHeader.ZIndex = 4
-    
-    createCorner(10).Parent = contentHeader
-    
-    -- Fix corner clipping for content header
-    local headerCornerFix = Instance.new("Frame")
-    headerCornerFix.Size = UDim2.new(1, 0, 0, 10)
-    headerCornerFix.Position = UDim2.new(0, 0, 1, -10)
-    headerCornerFix.BackgroundColor3 = Colors.SecondaryBackground
-    headerCornerFix.BorderSizePixel = 0
-    headerCornerFix.Parent = contentHeader
-    headerCornerFix.ZIndex = 3
-    
-    -- Search bar in content header
-    local searchFrame = Instance.new("Frame")
-    searchFrame.Size = UDim2.new(1, -30, 0, 30)
-    searchFrame.Position = UDim2.new(0, 15, 0.5, -15)
-    searchFrame.BackgroundColor3 = Colors.Background
-    searchFrame.BorderSizePixel = 0
-    searchFrame.Parent = contentHeader
-    searchFrame.ZIndex = 5
-    
-    createCorner(6).Parent = searchFrame
-    createStroke(1, Colors.Border).Parent = searchFrame
-    
-    local searchBox = Instance.new("TextBox")
-    searchBox.Size = UDim2.new(1, -15, 1, 0)
-    searchBox.Position = UDim2.new(0, 10, 0, 0)
-    searchBox.BackgroundTransparency = 1
-    searchBox.Font = Enum.Font.Gotham
-    searchBox.TextSize = 14
-    searchBox.TextColor3 = Colors.SubText
-    searchBox.PlaceholderText = "Search elements..."
-    searchBox.Text = ""
-    searchBox.TextXAlignment = Enum.TextXAlignment.Left
-    searchBox.Parent = searchFrame
-    searchBox.ZIndex = 6
-    
-    -- Sidebar scrolling frame
+    -- Sidebar scroll
     local sidebarScroll = Instance.new("ScrollingFrame")
-    sidebarScroll.Name = "SidebarScroll"
     sidebarScroll.Size = UDim2.new(1, -10, 1, -20)
     sidebarScroll.Position = UDim2.new(0, 5, 0, 10)
     sidebarScroll.BackgroundTransparency = 1
     sidebarScroll.BorderSizePixel = 0
     sidebarScroll.ScrollBarThickness = 6
     sidebarScroll.ScrollBarImageColor3 = Colors.KaliPink
-    sidebarScroll.ScrollBarImageTransparency = 0.3
     sidebarScroll.Parent = sidebar
-    sidebarScroll.ZIndex = 4
     
     createPadding(8).Parent = sidebarScroll
     
@@ -274,18 +189,15 @@ function KaliHub:CreateWindow(config)
     sidebarLayout.Padding = UDim.new(0, 6)
     sidebarLayout.Parent = sidebarScroll
     
-    -- Main content scrolling frame
+    -- Content scroll
     local contentScroll = Instance.new("ScrollingFrame")
-    contentScroll.Name = "ContentScroll"
-    contentScroll.Size = UDim2.new(1, -10, 1, -65)
-    contentScroll.Position = UDim2.new(0, 5, 0, 60)
+    contentScroll.Size = UDim2.new(1, -10, 1, -10)
+    contentScroll.Position = UDim2.new(0, 5, 0, 5)
     contentScroll.BackgroundTransparency = 1
     contentScroll.BorderSizePixel = 0
     contentScroll.ScrollBarThickness = 6
     contentScroll.ScrollBarImageColor3 = Colors.KaliPink
-    contentScroll.ScrollBarImageTransparency = 0.3
     contentScroll.Parent = mainContent
-    contentScroll.ZIndex = 4
     
     createPadding(15).Parent = contentScroll
     
@@ -304,7 +216,7 @@ function KaliHub:CreateWindow(config)
         CurrentTab = nil
     }
     
-    -- Make window draggable
+    -- Make draggable
     local dragging = false
     local dragStart = nil
     local startPos = nil
@@ -330,39 +242,24 @@ function KaliHub:CreateWindow(config)
         end
     end)
     
-    -- Close button functionality
+    -- Close functionality
     closeButton.MouseButton1Click:Connect(function()
-        TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-            Size = UDim2.new(0, 0, 0, 0),
-            Position = UDim2.new(0.5, 0, 0.5, 0)
-        }):Play()
-        
-        wait(0.3)
         screenGui:Destroy()
     end)
     
-    -- Button hover effects
+    -- Close button hover
     closeButton.MouseEnter:Connect(function()
-        TweenService:Create(closeButton, AnimationInfo, {
-            BackgroundColor3 = Color3.fromRGB(220, 100, 100),
-            Size = UDim2.new(0, 38, 0, 38)
-        }):Play()
+        TweenService:Create(closeButton, AnimationInfo, {BackgroundColor3 = Color3.fromRGB(220, 100, 100)}):Play()
     end)
     
     closeButton.MouseLeave:Connect(function()
-        TweenService:Create(closeButton, AnimationInfo, {
-            BackgroundColor3 = Color3.fromRGB(45, 45, 55),
-            Size = UDim2.new(0, 35, 0, 35)
-        }):Play()
+        TweenService:Create(closeButton, AnimationInfo, {BackgroundColor3 = Color3.fromRGB(45, 45, 55)}):Play()
     end)
     
-    -- Tab creation function
-    function Window:CreateTab(name, config)
-        config = config or {}
-        
+    -- Tab creation
+    function Window:CreateTab(name)
         -- Tab button
         local tabButton = Instance.new("TextButton")
-        tabButton.Name = name .. "Tab"
         tabButton.Text = name
         tabButton.Font = Enum.Font.GothamSemibold
         tabButton.TextSize = 15
@@ -371,42 +268,45 @@ function KaliHub:CreateWindow(config)
         tabButton.Size = UDim2.new(1, 0, 0, 40)
         tabButton.BorderSizePixel = 0
         tabButton.Parent = self.Sidebar
-        tabButton.ZIndex = 5
         
         createCorner(8).Parent = tabButton
         createStroke(1, Color3.fromRGB(55, 55, 65)).Parent = tabButton
+        createTextStroke(1, Color3.fromRGB(10, 10, 15)).Parent = tabButton
         
-        -- Tab icon (optional)
+        -- Tab indicator
         local tabIcon = Instance.new("Frame")
         tabIcon.Size = UDim2.new(0, 4, 0, 20)
         tabIcon.Position = UDim2.new(0, 8, 0.5, -10)
         tabIcon.BackgroundColor3 = Colors.SubText
         tabIcon.BorderSizePixel = 0
         tabIcon.Parent = tabButton
-        tabIcon.ZIndex = 6
         
         createCorner(2).Parent = tabIcon
         
         -- Tab content
         local tabContent = Instance.new("Frame")
-        tabContent.Name = name .. "Content"
         tabContent.Size = UDim2.new(1, 0, 0, 0)
         tabContent.BackgroundTransparency = 1
         tabContent.Visible = false
         tabContent.Parent = self.Content
-        tabContent.ZIndex = 5
         
         local tabLayout = Instance.new("UIListLayout")
         tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
         tabLayout.Padding = UDim.new(0, 10)
         tabLayout.Parent = tabContent
         
+        -- Auto-populate with example content based on tab name
+        if name == "Farming" then
+            self:CreateFarmingContent(tabContent, tabLayout)
+        elseif name == "Auto Buy" then
+            self:CreateAutoBuyContent(tabContent, tabLayout)
+        end
+        
         local Tab = {
             Button = tabButton,
             Content = tabContent,
             Layout = tabLayout,
-            Icon = tabIcon,
-            Elements = {}
+            Icon = tabIcon
         }
         
         -- Tab switching
@@ -418,9 +318,7 @@ function KaliHub:CreateWindow(config)
                     TextColor3 = Colors.SubText,
                     BackgroundColor3 = Color3.fromRGB(40, 40, 50)
                 }):Play()
-                TweenService:Create(tab.Icon, AnimationInfo, {
-                    BackgroundColor3 = Colors.SubText
-                }):Play()
+                TweenService:Create(tab.Icon, AnimationInfo, {BackgroundColor3 = Colors.SubText}):Play()
             end
             
             -- Show current tab
@@ -429,13 +327,11 @@ function KaliHub:CreateWindow(config)
                 TextColor3 = Colors.KaliPink,
                 BackgroundColor3 = Color3.fromRGB(50, 50, 60)
             }):Play()
-            TweenService:Create(tabIcon, AnimationInfo, {
-                BackgroundColor3 = Colors.KaliPink
-            }):Play()
+            TweenService:Create(tabIcon, AnimationInfo, {BackgroundColor3 = Colors.KaliPink}):Play()
             
             self.CurrentTab = Tab
             
-            -- Update content size
+            -- Update sizes
             tabContent.Size = UDim2.new(1, 0, 0, tabLayout.AbsoluteContentSize.Y)
             self.Content.CanvasSize = UDim2.new(0, 0, 0, tabLayout.AbsoluteContentSize.Y + 50)
         end)
@@ -463,14 +359,182 @@ function KaliHub:CreateWindow(config)
         
         -- Auto-select first tab
         if not self.CurrentTab then
-            wait(0.1)
-            tabButton.MouseButton1Click:Fire()
+            spawn(function()
+                wait(0.1)
+                tabButton.MouseButton1Click:Fire()
+            end)
         end
         
         -- Update sidebar size
         self.Sidebar.CanvasSize = UDim2.new(0, 0, 0, sidebarLayout.AbsoluteContentSize.Y + 20)
         
         return Tab
+    end
+    
+    -- Create Farming tab content
+    function Window:CreateFarmingContent(parent, layout)
+        -- Auto Favourite section
+        local autoFavSection = self:CreateSection("Auto Favourite", parent, layout)
+        
+        -- Auto Harvest
+        self:CreateOption("Auto Harvest", "None", autoFavSection)
+        
+        -- Auto Plant
+        self:CreateOption("Auto Plant", "None", autoFavSection)
+        
+        -- Priority Mutation
+        self:CreateOption("Priority Mutation", "None", autoFavSection)
+        
+        -- Harvest Mutations Only
+        self:CreateOption("Harvest Mutations Only", "None", autoFavSection)
+        
+        -- Mutations
+        self:CreateDropdown("Mutations", "[Select]", autoFavSection)
+        
+        -- Plant Method
+        self:CreateDropdown("Plant Method", "Random", autoFavSection)
+    end
+    
+    -- Create Auto Buy tab content
+    function Window:CreateAutoBuyContent(parent, layout)
+        -- Auto Buy section
+        local autoBuySection = self:CreateSection("Auto Buy", parent, layout)
+        
+        -- Auto Buy Seed
+        self:CreateOption("Auto Buy Seed", "None", autoBuySection)
+        
+        -- Buy Seeds
+        self:CreateDropdown("Buy Seeds", "[Select]", autoBuySection)
+        
+        -- Buy Gear
+        self:CreateOption("Buy Gear", "None", autoBuySection)
+        
+        -- Gear
+        self:CreateDropdown("Gear", "[Select]", autoBuySection)
+        
+        -- Auto Buy Event Shop
+        self:CreateOption("Auto Buy Event Shop", "None", autoBuySection)
+        
+        -- Stock
+        self:CreateDropdown("Stock", "[Select]", autoBuySection)
+    end
+    
+    -- Create section
+    function Window:CreateSection(name, parent, layout)
+        local section = Instance.new("Frame")
+        section.Size = UDim2.new(1, 0, 0, 35)
+        section.BackgroundColor3 = Colors.Secondary
+        section.BorderSizePixel = 0
+        section.Parent = parent
+        
+        createCorner(8).Parent = section
+        createStroke(1, Colors.Border).Parent = section
+        
+        local sectionLabel = Instance.new("TextLabel")
+        sectionLabel.Text = "🔸 " .. name
+        sectionLabel.Font = Enum.Font.GothamBold
+        sectionLabel.TextSize = 16
+        sectionLabel.TextColor3 = Colors.KaliPink
+        sectionLabel.BackgroundTransparency = 1
+        sectionLabel.Size = UDim2.new(1, -20, 1, 0)
+        sectionLabel.Position = UDim2.new(0, 15, 0, 0)
+        sectionLabel.TextXAlignment = Enum.TextXAlignment.Left
+        sectionLabel.Parent = section
+        
+        createTextStroke(1, Color3.fromRGB(10, 10, 15)).Parent = sectionLabel
+        
+        return section
+    end
+    
+    -- Create option (like toggle appearance)
+    function Window:CreateOption(name, value, parent)
+        local option = Instance.new("Frame")
+        option.Size = UDim2.new(1, 0, 0, 35)
+        option.BackgroundColor3 = Colors.Background
+        option.BorderSizePixel = 0
+        option.Parent = parent.Parent
+        
+        createCorner(6).Parent = option
+        createStroke(1, Colors.Border).Parent = option
+        
+        local optionLabel = Instance.new("TextLabel")
+        optionLabel.Text = name
+        optionLabel.Font = Enum.Font.Gotham
+        optionLabel.TextSize = 14
+        optionLabel.TextColor3 = Colors.Text
+        optionLabel.BackgroundTransparency = 1
+        optionLabel.Size = UDim2.new(0.6, 0, 1, 0)
+        optionLabel.Position = UDim2.new(0, 15, 0, 0)
+        optionLabel.TextXAlignment = Enum.TextXAlignment.Left
+        optionLabel.Parent = option
+        
+        createTextStroke(1, Color3.fromRGB(5, 5, 10)).Parent = optionLabel
+        
+        local valueLabel = Instance.new("TextLabel")
+        valueLabel.Text = value
+        valueLabel.Font = Enum.Font.Gotham
+        valueLabel.TextSize = 14
+        valueLabel.TextColor3 = Colors.SubText
+        valueLabel.BackgroundTransparency = 1
+        valueLabel.Size = UDim2.new(0.4, -15, 1, 0)
+        valueLabel.Position = UDim2.new(0.6, 0, 0, 0)
+        valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+        valueLabel.Parent = option
+        
+        createTextStroke(1, Color3.fromRGB(5, 5, 10)).Parent = valueLabel
+        
+        return option
+    end
+    
+    -- Create dropdown
+    function Window:CreateDropdown(name, value, parent)
+        local dropdown = Instance.new("Frame")
+        dropdown.Size = UDim2.new(1, 0, 0, 35)
+        dropdown.BackgroundColor3 = Colors.Background
+        dropdown.BorderSizePixel = 0
+        dropdown.Parent = parent.Parent
+        
+        createCorner(6).Parent = dropdown
+        createStroke(1, Colors.Border).Parent = dropdown
+        
+        local dropdownLabel = Instance.new("TextLabel")
+        dropdownLabel.Text = name
+        dropdownLabel.Font = Enum.Font.Gotham
+        dropdownLabel.TextSize = 14
+        dropdownLabel.TextColor3 = Colors.Text
+        dropdownLabel.BackgroundTransparency = 1
+        dropdownLabel.Size = UDim2.new(0.6, 0, 1, 0)
+        dropdownLabel.Position = UDim2.new(0, 15, 0, 0)
+        dropdownLabel.TextXAlignment = Enum.TextXAlignment.Left
+        dropdownLabel.Parent = dropdown
+        
+        createTextStroke(1, Color3.fromRGB(5, 5, 10)).Parent = dropdownLabel
+        
+        local dropdownButton = Instance.new("TextButton")
+        dropdownButton.Text = value .. " ▼"
+        dropdownButton.Font = Enum.Font.Gotham
+        dropdownButton.TextSize = 12
+        dropdownButton.TextColor3 = Colors.KaliPink
+        dropdownButton.BackgroundColor3 = Colors.Secondary
+        dropdownButton.Size = UDim2.new(0, 80, 0, 25)
+        dropdownButton.Position = UDim2.new(1, -90, 0.5, -12.5)
+        dropdownButton.BorderSizePixel = 0
+        dropdownButton.Parent = dropdown
+        
+        createCorner(4).Parent = dropdownButton
+        createStroke(1, Colors.Border).Parent = dropdownButton
+        createTextStroke(1, Color3.fromRGB(5, 5, 10)).Parent = dropdownButton
+        
+        -- Hover effect
+        dropdownButton.MouseEnter:Connect(function()
+            TweenService:Create(dropdownButton, AnimationInfo, {BackgroundColor3 = Colors.AccentHover}):Play()
+        end)
+        
+        dropdownButton.MouseLeave:Connect(function()
+            TweenService:Create(dropdownButton, AnimationInfo, {BackgroundColor3 = Colors.Secondary}):Play()
+        end)
+        
+        return dropdown
     end
     
     return Window
