@@ -1,4 +1,4 @@
--- Kali Hub UI Library - Fixed with Working Controls and Minimize
+-- Kali Hub UI Library - Fixed Version
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
@@ -17,12 +17,13 @@ local Colors = {
     HubWhite = Color3.fromRGB(255, 255, 255),
     AccentHover = Color3.fromRGB(255, 192, 203),
     Success = Color3.fromRGB(120, 220, 120),
-    Enabled = Color3.fromRGB(120, 220, 120),
-    Disabled = Color3.fromRGB(220, 100, 100)
+    Danger = Color3.fromRGB(220, 100, 100),
+    DropdownBg = Color3.fromRGB(25, 25, 35)
 }
 
 -- Animation settings
 local AnimationInfo = TweenInfo.new(0.15, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+local FastAnimation = TweenInfo.new(0.1, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
 
 -- Utility functions
 local function createCorner(radius)
@@ -94,44 +95,56 @@ function KaliHub:CreateWindow(config)
     cornerFix.BorderSizePixel = 0
     cornerFix.Parent = titleBar
     
-    -- Title container
+    -- Title container - Adjusted spacing
     local titleContainer = Instance.new("Frame")
-    titleContainer.Size = UDim2.new(0, 200, 1, 0)
+    titleContainer.Size = UDim2.new(0, 120, 1, 0)
     titleContainer.Position = UDim2.new(0, 20, 0, 0)
     titleContainer.BackgroundTransparency = 1
     titleContainer.Parent = titleBar
     
-    -- "Kali Hub" text (fixed spacing)
-    local titleText = Instance.new("TextLabel")
-    titleText.Text = "Kali Hub"
-    titleText.RichText = true
-    titleText.Font = Enum.Font.GothamBold
-    titleText.TextSize = 20
-    titleText.BackgroundTransparency = 1
-    titleText.Size = UDim2.new(0, 120, 1, 0)
-    titleText.Position = UDim2.new(0, 0, 0, 0)
-    titleText.TextXAlignment = Enum.TextXAlignment.Left
-    titleText.TextYAlignment = Enum.TextYAlignment.Center
-    titleText.Parent = titleContainer
+    -- "Kali" text (pink with stroke)
+    local kaliText = Instance.new("TextLabel")
+    kaliText.Text = "Kali"
+    kaliText.Font = Enum.Font.GothamBold
+    kaliText.TextSize = 20
+    kaliText.TextColor3 = Colors.KaliPink
+    kaliText.BackgroundTransparency = 1
+    kaliText.Size = UDim2.new(0, 40, 1, 0)
+    kaliText.Position = UDim2.new(0, 0, 0, 0)
+    kaliText.TextXAlignment = Enum.TextXAlignment.Left
+    kaliText.TextYAlignment = Enum.TextYAlignment.Center
+    kaliText.Parent = titleContainer
     
-    -- Set the rich text with proper colors
-    titleText.Text = '<font color="rgb(255,182,193)">Kali</font> <font color="rgb(255,255,255)">Hub</font>'
+    createTextStroke(2, Color3.fromRGB(15, 15, 25)).Parent = kaliText
     
-    createTextStroke(2, Color3.fromRGB(15, 15, 25)).Parent = titleText
+    -- "Hub" text (white with stroke) - Reduced spacing further
+    local hubText = Instance.new("TextLabel")
+    hubText.Text = "Hub"
+    hubText.Font = Enum.Font.GothamBold
+    hubText.TextSize = 20
+    hubText.TextColor3 = Colors.HubWhite
+    hubText.BackgroundTransparency = 1
+    hubText.Size = UDim2.new(0, 40, 1, 0)
+    hubText.Position = UDim2.new(0, 37, 0, 0) -- Reduced from 40 to 37 for closer spacing
+    hubText.TextXAlignment = Enum.TextXAlignment.Left
+    hubText.TextYAlignment = Enum.TextYAlignment.Center
+    hubText.Parent = titleContainer
     
-    -- Minimize button
-    local minimizeButton = Instance.new("TextButton")
-    minimizeButton.Text = "─"
-    minimizeButton.Font = Enum.Font.GothamBold
-    minimizeButton.TextSize = 18
-    minimizeButton.TextColor3 = Colors.Text
-    minimizeButton.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-    minimizeButton.Size = UDim2.new(0, 35, 0, 35)
-    minimizeButton.Position = UDim2.new(1, -90, 0.5, -17.5)
-    minimizeButton.BorderSizePixel = 0
-    minimizeButton.Parent = titleBar
+    createTextStroke(2, Color3.fromRGB(15, 15, 25)).Parent = hubText
     
-    createCorner(8).Parent = minimizeButton
+    -- Hide button (changed from minimize)
+    local hideButton = Instance.new("TextButton")
+    hideButton.Text = "−"
+    hideButton.Font = Enum.Font.GothamBold
+    hideButton.TextSize = 20
+    hideButton.TextColor3 = Colors.Text
+    hideButton.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    hideButton.Size = UDim2.new(0, 35, 0, 35)
+    hideButton.Position = UDim2.new(1, -85, 0.5, -17.5)
+    hideButton.BorderSizePixel = 0
+    hideButton.Parent = titleBar
+    
+    createCorner(8).Parent = hideButton
     
     -- Close button
     local closeButton = Instance.new("TextButton")
@@ -218,7 +231,7 @@ function KaliHub:CreateWindow(config)
         Content = contentScroll,
         Tabs = {},
         CurrentTab = nil,
-        IsMinimized = false
+        IsHidden = false
     }
     
     -- Make draggable
@@ -247,47 +260,60 @@ function KaliHub:CreateWindow(config)
         end
     end)
     
-    -- Minimize functionality
-    local function toggleMinimize()
-        Window.IsMinimized = not Window.IsMinimized
-        
-        if Window.IsMinimized then
-            TweenService:Create(mainFrame, AnimationInfo, {Size = UDim2.new(0, 650, 0, 55)}):Play()
-            contentFrame.Visible = false
-            minimizeButton.Text = "□"
+    -- Hide/Show functionality
+    local function toggleVisibility()
+        if Window.IsHidden then
+            -- Show
+            mainFrame.Visible = true
+            TweenService:Create(mainFrame, AnimationInfo, {
+                Position = UDim2.new(0.5, -325, 0.5, -225)
+            }):Play()
+            Window.IsHidden = false
         else
-            TweenService:Create(mainFrame, AnimationInfo, {Size = UDim2.new(0, 650, 0, 450)}):Play()
-            contentFrame.Visible = true
-            minimizeButton.Text = "─"
+            -- Hide
+            TweenService:Create(mainFrame, AnimationInfo, {
+                Position = UDim2.new(0.5, -325, 1.5, 0)
+            }):Play()
+            spawn(function()
+                wait(0.15)
+                if Window.IsHidden then
+                    mainFrame.Visible = false
+                end
+            end)
+            Window.IsHidden = true
         end
     end
     
-    -- Left Ctrl to minimize
+    hideButton.MouseButton1Click:Connect(toggleVisibility)
+    
+    -- Left Ctrl to hide/show
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if not gameProcessed and input.KeyCode == Enum.KeyCode.LeftControl then
-            toggleMinimize()
+            toggleVisibility()
         end
     end)
     
-    -- Minimize button click
-    minimizeButton.MouseButton1Click:Connect(toggleMinimize)
-    
     -- Close functionality
     closeButton.MouseButton1Click:Connect(function()
+        TweenService:Create(mainFrame, FastAnimation, {
+            Size = UDim2.new(0, 0, 0, 0),
+            Position = UDim2.new(0.5, 0, 0.5, 0)
+        }):Play()
+        wait(0.1)
         screenGui:Destroy()
     end)
     
     -- Button hover effects
-    minimizeButton.MouseEnter:Connect(function()
-        TweenService:Create(minimizeButton, AnimationInfo, {BackgroundColor3 = Color3.fromRGB(100, 100, 120)}):Play()
+    hideButton.MouseEnter:Connect(function()
+        TweenService:Create(hideButton, AnimationInfo, {BackgroundColor3 = Colors.AccentHover}):Play()
     end)
     
-    minimizeButton.MouseLeave:Connect(function()
-        TweenService:Create(minimizeButton, AnimationInfo, {BackgroundColor3 = Color3.fromRGB(45, 45, 55)}):Play()
+    hideButton.MouseLeave:Connect(function()
+        TweenService:Create(hideButton, AnimationInfo, {BackgroundColor3 = Color3.fromRGB(45, 45, 55)}):Play()
     end)
     
     closeButton.MouseEnter:Connect(function()
-        TweenService:Create(closeButton, AnimationInfo, {BackgroundColor3 = Color3.fromRGB(220, 100, 100)}):Play()
+        TweenService:Create(closeButton, AnimationInfo, {BackgroundColor3 = Colors.Danger}):Play()
     end)
     
     closeButton.MouseLeave:Connect(function()
@@ -347,7 +373,7 @@ function KaliHub:CreateWindow(config)
             Icon = tabIcon
         }
         
-        -- Tab switching
+        -- Tab switching with improved animation
         tabButton.MouseButton1Click:Connect(function()
             -- Hide all tabs
             for _, tab in pairs(self.Tabs) do
@@ -359,7 +385,7 @@ function KaliHub:CreateWindow(config)
                 TweenService:Create(tab.Icon, AnimationInfo, {BackgroundColor3 = Colors.SubText}):Play()
             end
             
-            -- Show current tab
+            -- Show current tab with animation
             tabContent.Visible = true
             TweenService:Create(tabButton, AnimationInfo, {
                 TextColor3 = Colors.KaliPink,
@@ -370,17 +396,21 @@ function KaliHub:CreateWindow(config)
             self.CurrentTab = Tab
             
             -- Update sizes
-            tabContent.Size = UDim2.new(1, 0, 0, tabLayout.AbsoluteContentSize.Y)
-            self.Content.CanvasSize = UDim2.new(0, 0, 0, tabLayout.AbsoluteContentSize.Y + 50)
+            spawn(function()
+                wait(0.1)
+                tabContent.Size = UDim2.new(1, 0, 0, tabLayout.AbsoluteContentSize.Y)
+                self.Content.CanvasSize = UDim2.new(0, 0, 0, tabLayout.AbsoluteContentSize.Y + 50)
+            end)
         end)
         
-        -- Hover effects
+        -- Enhanced hover effects
         tabButton.MouseEnter:Connect(function()
             if self.CurrentTab ~= Tab then
                 TweenService:Create(tabButton, AnimationInfo, {
                     BackgroundColor3 = Color3.fromRGB(45, 45, 55),
                     TextColor3 = Colors.Text
                 }):Play()
+                TweenService:Create(tabIcon, AnimationInfo, {BackgroundColor3 = Colors.Text}):Play()
             end
         end)
         
@@ -390,6 +420,7 @@ function KaliHub:CreateWindow(config)
                     BackgroundColor3 = Color3.fromRGB(40, 40, 50),
                     TextColor3 = Colors.SubText
                 }):Play()
+                TweenService:Create(tabIcon, AnimationInfo, {BackgroundColor3 = Colors.SubText}):Play()
             end
         end)
         
@@ -414,23 +445,23 @@ function KaliHub:CreateWindow(config)
         -- Auto Favourite section
         local autoFavSection = self:CreateSection("Auto Favourite", parent, layout)
         
-        -- Auto Harvest
+        -- Auto Harvest Toggle
         self:CreateToggle("Auto Harvest", false, autoFavSection)
         
-        -- Auto Plant
+        -- Auto Plant Toggle
         self:CreateToggle("Auto Plant", false, autoFavSection)
         
-        -- Priority Mutation
+        -- Priority Mutation Toggle
         self:CreateToggle("Priority Mutation", false, autoFavSection)
         
-        -- Harvest Mutations Only
+        -- Harvest Mutations Only Toggle
         self:CreateToggle("Harvest Mutations Only", false, autoFavSection)
         
-        -- Mutations
-        self:CreateDropdown("Mutations", "[Select]", {"Fire", "Water", "Earth", "Air", "Light", "Dark"}, autoFavSection)
+        -- Mutations Dropdown
+        self:CreateDropdown("Mutations", {"None", "Fire", "Water", "Earth", "Air", "Lightning"}, autoFavSection)
         
-        -- Plant Method
-        self:CreateDropdown("Plant Method", "Random", {"Random", "Sequential", "Priority", "Balanced"}, autoFavSection)
+        -- Plant Method Dropdown
+        self:CreateDropdown("Plant Method", {"Random", "Sequential", "Priority"}, autoFavSection)
     end
     
     -- Create Auto Buy tab content
@@ -438,23 +469,23 @@ function KaliHub:CreateWindow(config)
         -- Auto Buy section
         local autoBuySection = self:CreateSection("Auto Buy", parent, layout)
         
-        -- Auto Buy Seed
+        -- Auto Buy Seed Toggle
         self:CreateToggle("Auto Buy Seed", false, autoBuySection)
         
-        -- Buy Seeds
-        self:CreateDropdown("Buy Seeds", "[Select]", {"Common Seeds", "Rare Seeds", "Epic Seeds", "Legendary Seeds"}, autoBuySection)
+        -- Buy Seeds Dropdown
+        self:CreateDropdown("Buy Seeds", {"None", "Basic Seeds", "Premium Seeds", "Rare Seeds"}, autoBuySection)
         
-        -- Buy Gear
+        -- Buy Gear Toggle
         self:CreateToggle("Buy Gear", false, autoBuySection)
         
-        -- Gear
-        self:CreateDropdown("Gear", "[Select]", {"Basic Tools", "Advanced Tools", "Pro Tools", "Master Tools"}, autoBuySection)
+        -- Gear Dropdown
+        self:CreateDropdown("Gear", {"None", "Watering Can", "Fertilizer", "Harvester"}, autoBuySection)
         
-        -- Auto Buy Event Shop
+        -- Auto Buy Event Shop Toggle
         self:CreateToggle("Auto Buy Event Shop", false, autoBuySection)
         
-        -- Stock
-        self:CreateDropdown("Stock", "[Select]", {"Limited Items", "Seasonal Items", "Event Items", "Special Items"}, autoBuySection)
+        -- Stock Dropdown
+        self:CreateDropdown("Stock", {"None", "Low Stock", "Medium Stock", "High Stock"}, autoBuySection)
     end
     
     -- Create section
@@ -484,7 +515,7 @@ function KaliHub:CreateWindow(config)
         return section
     end
     
-    -- Create toggle (working toggle)
+    -- Create toggle (improved from option)
     function Window:CreateToggle(name, defaultValue, parent)
         local toggle = Instance.new("Frame")
         toggle.Size = UDim2.new(1, 0, 0, 35)
@@ -508,74 +539,61 @@ function KaliHub:CreateWindow(config)
         
         createTextStroke(1, Color3.fromRGB(5, 5, 10)).Parent = toggleLabel
         
-        -- Toggle button
+        -- Toggle switch
         local toggleButton = Instance.new("TextButton")
         toggleButton.Text = ""
-        toggleButton.BackgroundColor3 = defaultValue and Colors.Enabled or Colors.Disabled
-        toggleButton.Size = UDim2.new(0, 50, 0, 20)
-        toggleButton.Position = UDim2.new(1, -60, 0.5, -10)
+        toggleButton.BackgroundColor3 = defaultValue and Colors.KaliPink or Color3.fromRGB(60, 60, 70)
+        toggleButton.Size = UDim2.new(0, 45, 0, 20)
+        toggleButton.Position = UDim2.new(1, -55, 0.5, -10)
         toggleButton.BorderSizePixel = 0
         toggleButton.Parent = toggle
         
         createCorner(10).Parent = toggleButton
-        createStroke(1, Colors.Border).Parent = toggleButton
         
-        -- Toggle indicator
-        local toggleIndicator = Instance.new("Frame")
-        toggleIndicator.Size = UDim2.new(0, 16, 0, 16)
-        toggleIndicator.Position = defaultValue and UDim2.new(0, 32, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
-        toggleIndicator.BackgroundColor3 = Colors.HubWhite
-        toggleIndicator.BorderSizePixel = 0
-        toggleIndicator.Parent = toggleButton
+        -- Toggle circle
+        local toggleCircle = Instance.new("Frame")
+        toggleCircle.Size = UDim2.new(0, 16, 0, 16)
+        toggleCircle.Position = defaultValue and UDim2.new(0, 27, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+        toggleCircle.BackgroundColor3 = Colors.Text
+        toggleCircle.BorderSizePixel = 0
+        toggleCircle.Parent = toggleButton
         
-        createCorner(8).Parent = toggleIndicator
+        createCorner(8).Parent = toggleCircle
         
-        -- Toggle state
-        local isEnabled = defaultValue
+        local isToggled = defaultValue
         
-        -- Status text
-        local statusText = Instance.new("TextLabel")
-        statusText.Text = isEnabled and "ON" or "OFF"
-        statusText.Font = Enum.Font.GothamBold
-        statusText.TextSize = 12
-        statusText.TextColor3 = isEnabled and Colors.Enabled or Colors.Disabled
-        statusText.BackgroundTransparency = 1
-        statusText.Size = UDim2.new(0.3, -60, 1, 0)
-        statusText.Position = UDim2.new(0.7, 0, 0, 0)
-        statusText.TextXAlignment = Enum.TextXAlignment.Right
-        statusText.Parent = toggle
-        
-        createTextStroke(1, Color3.fromRGB(5, 5, 10)).Parent = statusText
-        
-        -- Toggle functionality
         toggleButton.MouseButton1Click:Connect(function()
-            isEnabled = not isEnabled
+            isToggled = not isToggled
             
-            -- Animate toggle
-            local newPos = isEnabled and UDim2.new(0, 32, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
-            local newColor = isEnabled and Colors.Enabled or Colors.Disabled
+            TweenService:Create(toggleButton, AnimationInfo, {
+                BackgroundColor3 = isToggled and Colors.KaliPink or Color3.fromRGB(60, 60, 70)
+            }):Play()
             
-            TweenService:Create(toggleIndicator, AnimationInfo, {Position = newPos}):Play()
-            TweenService:Create(toggleButton, AnimationInfo, {BackgroundColor3 = newColor}):Play()
-            TweenService:Create(statusText, AnimationInfo, {TextColor3 = newColor}):Play()
-            
-            statusText.Text = isEnabled and "ON" or "OFF"
+            TweenService:Create(toggleCircle, AnimationInfo, {
+                Position = isToggled and UDim2.new(0, 27, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+            }):Play()
         end)
         
         -- Hover effect
         toggleButton.MouseEnter:Connect(function()
-            TweenService:Create(toggleIndicator, AnimationInfo, {BackgroundColor3 = Colors.AccentHover}):Play()
+            TweenService:Create(toggleCircle, AnimationInfo, {
+                Size = UDim2.new(0, 18, 0, 18),
+                Position = isToggled and UDim2.new(0, 26, 0.5, -9) or UDim2.new(0, 1, 0.5, -9)
+            }):Play()
         end)
         
         toggleButton.MouseLeave:Connect(function()
-            TweenService:Create(toggleIndicator, AnimationInfo, {BackgroundColor3 = Colors.HubWhite}):Play()
+            TweenService:Create(toggleCircle, AnimationInfo, {
+                Size = UDim2.new(0, 16, 0, 16),
+                Position = isToggled and UDim2.new(0, 27, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+            }):Play()
         end)
         
         return toggle
     end
     
-    -- Create dropdown (working dropdown)
-    function Window:CreateDropdown(name, defaultValue, options, parent)
+    -- Create functional dropdown (fixed version)
+    function Window:CreateDropdown(name, options, parent)
         local dropdown = Instance.new("Frame")
         dropdown.Size = UDim2.new(1, 0, 0, 35)
         dropdown.BackgroundColor3 = Colors.Background
@@ -591,15 +609,18 @@ function KaliHub:CreateWindow(config)
         dropdownLabel.TextSize = 14
         dropdownLabel.TextColor3 = Colors.Text
         dropdownLabel.BackgroundTransparency = 1
-        dropdownLabel.Size = UDim2.new(0.6, 0, 1, 0)
+        dropdownLabel.Size = UDim2.new(0.5, 0, 1, 0)
         dropdownLabel.Position = UDim2.new(0, 15, 0, 0)
         dropdownLabel.TextXAlignment = Enum.TextXAlignment.Left
         dropdownLabel.Parent = dropdown
         
         createTextStroke(1, Color3.fromRGB(5, 5, 10)).Parent = dropdownLabel
         
+        local selectedValue = options[1] or "None"
+        local isOpen = false
+        
         local dropdownButton = Instance.new("TextButton")
-        dropdownButton.Text = defaultValue .. " ▼"
+        dropdownButton.Text = selectedValue .. " ▼"
         dropdownButton.Font = Enum.Font.Gotham
         dropdownButton.TextSize = 12
         dropdownButton.TextColor3 = Colors.KaliPink
@@ -607,63 +628,112 @@ function KaliHub:CreateWindow(config)
         dropdownButton.Size = UDim2.new(0, 120, 0, 25)
         dropdownButton.Position = UDim2.new(1, -130, 0.5, -12.5)
         dropdownButton.BorderSizePixel = 0
+        dropdownButton.ZIndex = 5
         dropdownButton.Parent = dropdown
         
         createCorner(4).Parent = dropdownButton
         createStroke(1, Colors.Border).Parent = dropdownButton
         createTextStroke(1, Color3.fromRGB(5, 5, 10)).Parent = dropdownButton
         
-        -- Dropdown menu
-        local dropdownMenu = Instance.new("Frame")
-        dropdownMenu.Size = UDim2.new(0, 120, 0, #options * 25)
-        dropdownMenu.Position = UDim2.new(1, -130, 1, 5)
-        dropdownMenu.BackgroundColor3 = Colors.Secondary
-        dropdownMenu.BorderSizePixel = 0
-        dropdownMenu.Visible = false
-        dropdownMenu.Parent = dropdown
-        dropdownMenu.ZIndex = 10
+        -- Create dropdown container that goes outside the main frame
+        local dropdownContainer = Instance.new("Frame")
+        dropdownContainer.Size = UDim2.new(0, 120, 0, 0)
+        dropdownContainer.Position = UDim2.new(1, -130, 1, 5)
+        dropdownContainer.BackgroundTransparency = 1
+        dropdownContainer.BorderSizePixel = 0
+        dropdownContainer.Visible = false
+        dropdownContainer.ZIndex = 10
+        dropdownContainer.Parent = dropdown
         
-        createCorner(4).Parent = dropdownMenu
-        createStroke(1, Colors.Border).Parent = dropdownMenu
+        -- Dropdown list
+        local dropdownList = Instance.new("Frame")
+        dropdownList.Size = UDim2.new(1, 0, 1, 0)
+        dropdownList.Position = UDim2.new(0, 0, 0, 0)
+        dropdownList.BackgroundColor3 = Colors.DropdownBg
+        dropdownList.BorderSizePixel = 0
+        dropdownList.ZIndex = 10
+        dropdownList.Parent = dropdownContainer
         
-        -- Dropdown options
+        createCorner(4).Parent = dropdownList
+        createStroke(1, Colors.Border).Parent = dropdownList
+        
+        local listLayout = Instance.new("UIListLayout")
+        listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        listLayout.Parent = dropdownList
+        
+        -- Create option buttons
         for i, option in ipairs(options) do
             local optionButton = Instance.new("TextButton")
             optionButton.Text = option
             optionButton.Font = Enum.Font.Gotham
             optionButton.TextSize = 12
             optionButton.TextColor3 = Colors.Text
-            optionButton.BackgroundColor3 = Colors.Secondary
+            optionButton.BackgroundTransparency = 1
             optionButton.Size = UDim2.new(1, 0, 0, 25)
-            optionButton.Position = UDim2.new(0, 0, 0, (i-1) * 25)
             optionButton.BorderSizePixel = 0
-            optionButton.Parent = dropdownMenu
             optionButton.ZIndex = 11
+            optionButton.Parent = dropdownList
             
             createTextStroke(1, Color3.fromRGB(5, 5, 10)).Parent = optionButton
             
-            -- Option selection
-            optionButton.MouseButton1Click:Connect(function()
-                dropdownButton.Text = option .. " ▼"
-                dropdownMenu.Visible = false
-            end)
-            
-            -- Option hover
             optionButton.MouseEnter:Connect(function()
-                TweenService:Create(optionButton, AnimationInfo, {BackgroundColor3 = Colors.Tertiary}):Play()
+                optionButton.BackgroundTransparency = 0
+                optionButton.BackgroundColor3 = Colors.Secondary
             end)
             
             optionButton.MouseLeave:Connect(function()
-                TweenService:Create(optionButton, AnimationInfo, {BackgroundColor3 = Colors.Secondary}):Play()
+                optionButton.BackgroundTransparency = 1
+            end)
+            
+            optionButton.MouseButton1Click:Connect(function()
+                selectedValue = option
+                dropdownButton.Text = selectedValue .. " ▼"
+                
+                -- Close dropdown
+                isOpen = false
+                dropdownContainer.Size = UDim2.new(0, 120, 0, 0)
+                dropdownContainer.Visible = false
             end)
         end
         
         -- Toggle dropdown
         dropdownButton.MouseButton1Click:Connect(function()
-            dropdownMenu.Visible = not dropdownMenu.Visible
+            isOpen = not isOpen
+            
+            if isOpen then
+                dropdownButton.Text = selectedValue .. " ▲"
+                dropdownContainer.Visible = true
+                dropdownContainer.Size = UDim2.new(0, 120, 0, #options * 25)
+            else
+                dropdownButton.Text = selectedValue .. " ▼"
+                dropdownContainer.Size = UDim2.new(0, 120, 0, 0)
+                dropdownContainer.Visible = false
+            end
         end)
         
-        -- Hover effect
+        -- Close dropdown when clicking elsewhere
+        UserInputService.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 and isOpen then
+                local mousePos = UserInputService:GetMouseLocation()
+                local buttonPos = dropdownButton.AbsolutePosition
+                local buttonSize = dropdownButton.AbsoluteSize
+                local listPos = dropdownList.AbsolutePosition
+                local listSize = dropdownList.AbsoluteSize
+                
+                -- Check if click is outside dropdown area
+                if not (mousePos.X >= buttonPos.X and mousePos.X <= buttonPos.X + buttonSize.X and
+                        mousePos.Y >= buttonPos.Y and mousePos.Y <= buttonPos.Y + buttonSize.Y) and
+                   not (mousePos.X >= listPos.X and mousePos.X <= listPos.X + listSize.X and
+                        mousePos.Y >= listPos.Y and mousePos.Y <= listPos.Y + listSize.Y) then
+                    isOpen = false
+                    dropdownButton.Text = selectedValue .. " ▼"
+                    dropdownContainer.Size = UDim2.new(0, 120, 0, 0)
+                    dropdownContainer.Visible = false
+                end
+            end
+        end)
+        
+        -- Hover effects
         dropdownButton.MouseEnter:Connect(function()
             TweenService:Create(dropdownButton, AnimationInfo, {BackgroundColor3 = Colors.AccentHover}):Play()
         end)
