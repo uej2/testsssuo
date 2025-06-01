@@ -1,4 +1,4 @@
--- Kali Hub UI Library - Fully Functional Version
+-- Kali Hub UI Library - Fixed Scrolling & Auto-Disable on Close
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
@@ -206,7 +206,7 @@ function KaliHub:CreateWindow(config)
     sidebarLayout.Padding = UDim.new(0, 6)
     sidebarLayout.Parent = sidebarScroll
     
-    -- Content scroll
+    -- Content scroll - Fixed to ensure proper scrolling
     local contentScroll = Instance.new("ScrollingFrame")
     contentScroll.Size = UDim2.new(1, -10, 1, -10)
     contentScroll.Position = UDim2.new(0, 5, 0, 5)
@@ -214,6 +214,9 @@ function KaliHub:CreateWindow(config)
     contentScroll.BorderSizePixel = 0
     contentScroll.ScrollBarThickness = 6
     contentScroll.ScrollBarImageColor3 = Colors.KaliPink
+    contentScroll.ScrollingEnabled = true -- Ensure scrolling is enabled
+    contentScroll.CanvasSize = UDim2.new(0, 0, 0, 0) -- Will be updated dynamically
+    contentScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y -- Auto-size based on content
     contentScroll.Parent = mainContent
     
     createPadding(15).Parent = contentScroll
@@ -231,7 +234,8 @@ function KaliHub:CreateWindow(config)
         Content = contentScroll,
         Tabs = {},
         CurrentTab = nil,
-        IsHidden = false
+        IsHidden = false,
+        AllToggles = {} -- Store all toggles for disabling on close
     }
     
     -- Make draggable
@@ -293,8 +297,21 @@ function KaliHub:CreateWindow(config)
         end
     end)
     
-    -- Close functionality
+    -- Function to disable all toggles
+    local function disableAllToggles()
+        for _, toggle in pairs(Window.AllToggles) do
+            if toggle.Value then
+                toggle:SetValue(false)
+            end
+        end
+    end
+    
+    -- Close functionality - Now disables all toggles
     closeButton.MouseButton1Click:Connect(function()
+        -- Disable all toggles first
+        disableAllToggles()
+        
+        -- Then close the UI
         TweenService:Create(mainFrame, FastAnimation, {
             Size = UDim2.new(0, 0, 0, 0),
             Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -347,10 +364,16 @@ function KaliHub:CreateWindow(config)
         
         createCorner(2).Parent = tabIcon
         
-        -- Tab content
-        local tabContent = Instance.new("Frame")
-        tabContent.Size = UDim2.new(1, 0, 0, 0)
+        -- Tab content - Now using a ScrollingFrame for each tab
+        local tabContent = Instance.new("ScrollingFrame")
+        tabContent.Size = UDim2.new(1, 0, 1, 0)
         tabContent.BackgroundTransparency = 1
+        tabContent.BorderSizePixel = 0
+        tabContent.ScrollBarThickness = 6
+        tabContent.ScrollBarImageColor3 = Colors.KaliPink
+        tabContent.ScrollingEnabled = true
+        tabContent.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        tabContent.CanvasSize = UDim2.new(0, 0, 0, 0)
         tabContent.Visible = false
         tabContent.Parent = self.Content
         
@@ -358,6 +381,8 @@ function KaliHub:CreateWindow(config)
         tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
         tabLayout.Padding = UDim.new(0, 10)
         tabLayout.Parent = tabContent
+        
+        createPadding(10).Parent = tabContent
         
         -- Tab switching with improved animation
         tabButton.MouseButton1Click:Connect(function()
@@ -380,13 +405,6 @@ function KaliHub:CreateWindow(config)
             TweenService:Create(tabIcon, AnimationInfo, {BackgroundColor3 = Colors.KaliPink}):Play()
             
             self.CurrentTab = Tab
-            
-            -- Update sizes
-            spawn(function()
-                wait(0.1)
-                tabContent.Size = UDim2.new(1, 0, 0, tabLayout.AbsoluteContentSize.Y)
-                self.Content.CanvasSize = UDim2.new(0, 0, 0, tabLayout.AbsoluteContentSize.Y + 50)
-            end)
         end)
         
         -- Enhanced hover effects
@@ -470,8 +488,6 @@ function KaliHub:CreateWindow(config)
             -- Update section container size when elements are added
             sectionLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
                 sectionContainer.Size = UDim2.new(1, 0, 0, sectionLayout.AbsoluteContentSize.Y)
-                tabContent.Size = UDim2.new(1, 0, 0, tabLayout.AbsoluteContentSize.Y)
-                Window.Content.CanvasSize = UDim2.new(0, 0, 0, tabLayout.AbsoluteContentSize.Y + 50)
             end)
             
             local Section = {
@@ -542,6 +558,7 @@ function KaliHub:CreateWindow(config)
                         Position = isToggled and UDim2.new(0, 27, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
                     }):Play()
                     
+                    ToggleObj.Value = isToggled
                     callback(isToggled)
                 end)
                 
@@ -567,6 +584,7 @@ function KaliHub:CreateWindow(config)
                     Value = isToggled,
                     SetValue = function(self, value)
                         isToggled = value
+                        self.Value = value
                         TweenService:Create(toggleButton, AnimationInfo, {
                             BackgroundColor3 = isToggled and Colors.KaliPink or Color3.fromRGB(60, 60, 70)
                         }):Play()
@@ -576,6 +594,9 @@ function KaliHub:CreateWindow(config)
                         callback(isToggled)
                     end
                 }
+                
+                -- Add toggle to the list of all toggles
+                table.insert(Window.AllToggles, ToggleObj)
                 
                 return ToggleObj
             end
