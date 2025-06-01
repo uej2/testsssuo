@@ -1,4 +1,4 @@
--- Kali Hub UI Library - Fixed Version
+-- Kali Hub UI Library - Fully Functional Version
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
@@ -359,20 +359,6 @@ function KaliHub:CreateWindow(config)
         tabLayout.Padding = UDim.new(0, 10)
         tabLayout.Parent = tabContent
         
-        -- Auto-populate with example content based on tab name
-        if name == "Farming" then
-            self:CreateFarmingContent(tabContent, tabLayout)
-        elseif name == "Auto Buy" then
-            self:CreateAutoBuyContent(tabContent, tabLayout)
-        end
-        
-        local Tab = {
-            Button = tabButton,
-            Content = tabContent,
-            Layout = tabLayout,
-            Icon = tabIcon
-        }
-        
         -- Tab switching with improved animation
         tabButton.MouseButton1Click:Connect(function()
             -- Hide all tabs
@@ -424,6 +410,15 @@ function KaliHub:CreateWindow(config)
             end
         end)
         
+        local Tab = {
+            Button = tabButton,
+            Content = tabContent,
+            Layout = tabLayout,
+            Icon = tabIcon,
+            Name = name,
+            Sections = {}
+        }
+        
         self.Tabs[name] = Tab
         
         -- Auto-select first tab
@@ -437,312 +432,546 @@ function KaliHub:CreateWindow(config)
         -- Update sidebar size
         self.Sidebar.CanvasSize = UDim2.new(0, 0, 0, sidebarLayout.AbsoluteContentSize.Y + 20)
         
-        return Tab
-    end
-    
-    -- Create Farming tab content
-    function Window:CreateFarmingContent(parent, layout)
-        -- Auto Favourite section
-        local autoFavSection = self:CreateSection("Auto Favourite", parent, layout)
-        
-        -- Auto Harvest Toggle
-        self:CreateToggle("Auto Harvest", false, autoFavSection)
-        
-        -- Auto Plant Toggle
-        self:CreateToggle("Auto Plant", false, autoFavSection)
-        
-        -- Priority Mutation Toggle
-        self:CreateToggle("Priority Mutation", false, autoFavSection)
-        
-        -- Harvest Mutations Only Toggle
-        self:CreateToggle("Harvest Mutations Only", false, autoFavSection)
-        
-        -- Mutations Dropdown
-        self:CreateDropdown("Mutations", {"None", "Fire", "Water", "Earth", "Air", "Lightning"}, autoFavSection)
-        
-        -- Plant Method Dropdown
-        self:CreateDropdown("Plant Method", {"Random", "Sequential", "Priority"}, autoFavSection)
-    end
-    
-    -- Create Auto Buy tab content
-    function Window:CreateAutoBuyContent(parent, layout)
-        -- Auto Buy section
-        local autoBuySection = self:CreateSection("Auto Buy", parent, layout)
-        
-        -- Auto Buy Seed Toggle
-        self:CreateToggle("Auto Buy Seed", false, autoBuySection)
-        
-        -- Buy Seeds Dropdown
-        self:CreateDropdown("Buy Seeds", {"None", "Basic Seeds", "Premium Seeds", "Rare Seeds"}, autoBuySection)
-        
-        -- Buy Gear Toggle
-        self:CreateToggle("Buy Gear", false, autoBuySection)
-        
-        -- Gear Dropdown
-        self:CreateDropdown("Gear", {"None", "Watering Can", "Fertilizer", "Harvester"}, autoBuySection)
-        
-        -- Auto Buy Event Shop Toggle
-        self:CreateToggle("Auto Buy Event Shop", false, autoBuySection)
-        
-        -- Stock Dropdown
-        self:CreateDropdown("Stock", {"None", "Low Stock", "Medium Stock", "High Stock"}, autoBuySection)
-    end
-    
-    -- Create section
-    function Window:CreateSection(name, parent, layout)
-        local section = Instance.new("Frame")
-        section.Size = UDim2.new(1, 0, 0, 35)
-        section.BackgroundColor3 = Colors.Secondary
-        section.BorderSizePixel = 0
-        section.Parent = parent
-        
-        createCorner(8).Parent = section
-        createStroke(1, Colors.Border).Parent = section
-        
-        local sectionLabel = Instance.new("TextLabel")
-        sectionLabel.Text = "🔸 " .. name
-        sectionLabel.Font = Enum.Font.GothamBold
-        sectionLabel.TextSize = 16
-        sectionLabel.TextColor3 = Colors.KaliPink
-        sectionLabel.BackgroundTransparency = 1
-        sectionLabel.Size = UDim2.new(1, -20, 1, 0)
-        sectionLabel.Position = UDim2.new(0, 15, 0, 0)
-        sectionLabel.TextXAlignment = Enum.TextXAlignment.Left
-        sectionLabel.Parent = section
-        
-        createTextStroke(1, Color3.fromRGB(10, 10, 15)).Parent = sectionLabel
-        
-        return section
-    end
-    
-    -- Create toggle (improved from option)
-    function Window:CreateToggle(name, defaultValue, parent)
-        local toggle = Instance.new("Frame")
-        toggle.Size = UDim2.new(1, 0, 0, 35)
-        toggle.BackgroundColor3 = Colors.Background
-        toggle.BorderSizePixel = 0
-        toggle.Parent = parent.Parent
-        
-        createCorner(6).Parent = toggle
-        createStroke(1, Colors.Border).Parent = toggle
-        
-        local toggleLabel = Instance.new("TextLabel")
-        toggleLabel.Text = name
-        toggleLabel.Font = Enum.Font.Gotham
-        toggleLabel.TextSize = 14
-        toggleLabel.TextColor3 = Colors.Text
-        toggleLabel.BackgroundTransparency = 1
-        toggleLabel.Size = UDim2.new(0.7, 0, 1, 0)
-        toggleLabel.Position = UDim2.new(0, 15, 0, 0)
-        toggleLabel.TextXAlignment = Enum.TextXAlignment.Left
-        toggleLabel.Parent = toggle
-        
-        createTextStroke(1, Color3.fromRGB(5, 5, 10)).Parent = toggleLabel
-        
-        -- Toggle switch
-        local toggleButton = Instance.new("TextButton")
-        toggleButton.Text = ""
-        toggleButton.BackgroundColor3 = defaultValue and Colors.KaliPink or Color3.fromRGB(60, 60, 70)
-        toggleButton.Size = UDim2.new(0, 45, 0, 20)
-        toggleButton.Position = UDim2.new(1, -55, 0.5, -10)
-        toggleButton.BorderSizePixel = 0
-        toggleButton.Parent = toggle
-        
-        createCorner(10).Parent = toggleButton
-        
-        -- Toggle circle
-        local toggleCircle = Instance.new("Frame")
-        toggleCircle.Size = UDim2.new(0, 16, 0, 16)
-        toggleCircle.Position = defaultValue and UDim2.new(0, 27, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
-        toggleCircle.BackgroundColor3 = Colors.Text
-        toggleCircle.BorderSizePixel = 0
-        toggleCircle.Parent = toggleButton
-        
-        createCorner(8).Parent = toggleCircle
-        
-        local isToggled = defaultValue
-        
-        toggleButton.MouseButton1Click:Connect(function()
-            isToggled = not isToggled
+        -- Create section function for this tab
+        function Tab:CreateSection(name)
+            local section = Instance.new("Frame")
+            section.Size = UDim2.new(1, 0, 0, 35)
+            section.BackgroundColor3 = Colors.Secondary
+            section.BorderSizePixel = 0
+            section.Parent = tabContent
             
-            TweenService:Create(toggleButton, AnimationInfo, {
-                BackgroundColor3 = isToggled and Colors.KaliPink or Color3.fromRGB(60, 60, 70)
-            }):Play()
+            createCorner(8).Parent = section
+            createStroke(1, Colors.Border).Parent = section
             
-            TweenService:Create(toggleCircle, AnimationInfo, {
-                Position = isToggled and UDim2.new(0, 27, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
-            }):Play()
-        end)
-        
-        -- Hover effect
-        toggleButton.MouseEnter:Connect(function()
-            TweenService:Create(toggleCircle, AnimationInfo, {
-                Size = UDim2.new(0, 18, 0, 18),
-                Position = isToggled and UDim2.new(0, 26, 0.5, -9) or UDim2.new(0, 1, 0.5, -9)
-            }):Play()
-        end)
-        
-        toggleButton.MouseLeave:Connect(function()
-            TweenService:Create(toggleCircle, AnimationInfo, {
-                Size = UDim2.new(0, 16, 0, 16),
-                Position = isToggled and UDim2.new(0, 27, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
-            }):Play()
-        end)
-        
-        return toggle
-    end
-    
-    -- Create functional dropdown (fixed version)
-    function Window:CreateDropdown(name, options, parent)
-        local dropdown = Instance.new("Frame")
-        dropdown.Size = UDim2.new(1, 0, 0, 35)
-        dropdown.BackgroundColor3 = Colors.Background
-        dropdown.BorderSizePixel = 0
-        dropdown.Parent = parent.Parent
-        
-        createCorner(6).Parent = dropdown
-        createStroke(1, Colors.Border).Parent = dropdown
-        
-        local dropdownLabel = Instance.new("TextLabel")
-        dropdownLabel.Text = name
-        dropdownLabel.Font = Enum.Font.Gotham
-        dropdownLabel.TextSize = 14
-        dropdownLabel.TextColor3 = Colors.Text
-        dropdownLabel.BackgroundTransparency = 1
-        dropdownLabel.Size = UDim2.new(0.5, 0, 1, 0)
-        dropdownLabel.Position = UDim2.new(0, 15, 0, 0)
-        dropdownLabel.TextXAlignment = Enum.TextXAlignment.Left
-        dropdownLabel.Parent = dropdown
-        
-        createTextStroke(1, Color3.fromRGB(5, 5, 10)).Parent = dropdownLabel
-        
-        local selectedValue = options[1] or "None"
-        local isOpen = false
-        
-        local dropdownButton = Instance.new("TextButton")
-        dropdownButton.Text = selectedValue .. " ▼"
-        dropdownButton.Font = Enum.Font.Gotham
-        dropdownButton.TextSize = 12
-        dropdownButton.TextColor3 = Colors.KaliPink
-        dropdownButton.BackgroundColor3 = Colors.Secondary
-        dropdownButton.Size = UDim2.new(0, 120, 0, 25)
-        dropdownButton.Position = UDim2.new(1, -130, 0.5, -12.5)
-        dropdownButton.BorderSizePixel = 0
-        dropdownButton.ZIndex = 5
-        dropdownButton.Parent = dropdown
-        
-        createCorner(4).Parent = dropdownButton
-        createStroke(1, Colors.Border).Parent = dropdownButton
-        createTextStroke(1, Color3.fromRGB(5, 5, 10)).Parent = dropdownButton
-        
-        -- Create dropdown container that goes outside the main frame
-        local dropdownContainer = Instance.new("Frame")
-        dropdownContainer.Size = UDim2.new(0, 120, 0, 0)
-        dropdownContainer.Position = UDim2.new(1, -130, 1, 5)
-        dropdownContainer.BackgroundTransparency = 1
-        dropdownContainer.BorderSizePixel = 0
-        dropdownContainer.Visible = false
-        dropdownContainer.ZIndex = 10
-        dropdownContainer.Parent = dropdown
-        
-        -- Dropdown list
-        local dropdownList = Instance.new("Frame")
-        dropdownList.Size = UDim2.new(1, 0, 1, 0)
-        dropdownList.Position = UDim2.new(0, 0, 0, 0)
-        dropdownList.BackgroundColor3 = Colors.DropdownBg
-        dropdownList.BorderSizePixel = 0
-        dropdownList.ZIndex = 10
-        dropdownList.Parent = dropdownContainer
-        
-        createCorner(4).Parent = dropdownList
-        createStroke(1, Colors.Border).Parent = dropdownList
-        
-        local listLayout = Instance.new("UIListLayout")
-        listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        listLayout.Parent = dropdownList
-        
-        -- Create option buttons
-        for i, option in ipairs(options) do
-            local optionButton = Instance.new("TextButton")
-            optionButton.Text = option
-            optionButton.Font = Enum.Font.Gotham
-            optionButton.TextSize = 12
-            optionButton.TextColor3 = Colors.Text
-            optionButton.BackgroundTransparency = 1
-            optionButton.Size = UDim2.new(1, 0, 0, 25)
-            optionButton.BorderSizePixel = 0
-            optionButton.ZIndex = 11
-            optionButton.Parent = dropdownList
+            local sectionLabel = Instance.new("TextLabel")
+            sectionLabel.Text = "🔸 " .. name
+            sectionLabel.Font = Enum.Font.GothamBold
+            sectionLabel.TextSize = 16
+            sectionLabel.TextColor3 = Colors.KaliPink
+            sectionLabel.BackgroundTransparency = 1
+            sectionLabel.Size = UDim2.new(1, -20, 1, 0)
+            sectionLabel.Position = UDim2.new(0, 15, 0, 0)
+            sectionLabel.TextXAlignment = Enum.TextXAlignment.Left
+            sectionLabel.Parent = section
             
-            createTextStroke(1, Color3.fromRGB(5, 5, 10)).Parent = optionButton
+            createTextStroke(1, Color3.fromRGB(10, 10, 15)).Parent = sectionLabel
             
-            optionButton.MouseEnter:Connect(function()
-                optionButton.BackgroundTransparency = 0
-                optionButton.BackgroundColor3 = Colors.Secondary
+            -- Create a container for section elements
+            local sectionContainer = Instance.new("Frame")
+            sectionContainer.Size = UDim2.new(1, 0, 0, 0) -- Will be resized dynamically
+            sectionContainer.BackgroundTransparency = 1
+            sectionContainer.Parent = tabContent
+            
+            local sectionLayout = Instance.new("UIListLayout")
+            sectionLayout.SortOrder = Enum.SortOrder.LayoutOrder
+            sectionLayout.Padding = UDim.new(0, 8)
+            sectionLayout.Parent = sectionContainer
+            
+            -- Update section container size when elements are added
+            sectionLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+                sectionContainer.Size = UDim2.new(1, 0, 0, sectionLayout.AbsoluteContentSize.Y)
+                tabContent.Size = UDim2.new(1, 0, 0, tabLayout.AbsoluteContentSize.Y)
+                Window.Content.CanvasSize = UDim2.new(0, 0, 0, tabLayout.AbsoluteContentSize.Y + 50)
             end)
             
-            optionButton.MouseLeave:Connect(function()
-                optionButton.BackgroundTransparency = 1
-            end)
+            local Section = {
+                Frame = section,
+                Container = sectionContainer,
+                Layout = sectionLayout,
+                Name = name
+            }
             
-            optionButton.MouseButton1Click:Connect(function()
-                selectedValue = option
-                dropdownButton.Text = selectedValue .. " ▼"
+            -- Create toggle function
+            function Section:CreateToggle(name, defaultValue, callback)
+                callback = callback or function() end
+                defaultValue = defaultValue or false
                 
-                -- Close dropdown
-                isOpen = false
+                local toggle = Instance.new("Frame")
+                toggle.Size = UDim2.new(1, 0, 0, 35)
+                toggle.BackgroundColor3 = Colors.Background
+                toggle.BorderSizePixel = 0
+                toggle.Parent = sectionContainer
+                
+                createCorner(6).Parent = toggle
+                createStroke(1, Colors.Border).Parent = toggle
+                
+                local toggleLabel = Instance.new("TextLabel")
+                toggleLabel.Text = name
+                toggleLabel.Font = Enum.Font.Gotham
+                toggleLabel.TextSize = 14
+                toggleLabel.TextColor3 = Colors.Text
+                toggleLabel.BackgroundTransparency = 1
+                toggleLabel.Size = UDim2.new(0.7, 0, 1, 0)
+                toggleLabel.Position = UDim2.new(0, 15, 0, 0)
+                toggleLabel.TextXAlignment = Enum.TextXAlignment.Left
+                toggleLabel.Parent = toggle
+                
+                createTextStroke(1, Color3.fromRGB(5, 5, 10)).Parent = toggleLabel
+                
+                -- Toggle switch
+                local toggleButton = Instance.new("TextButton")
+                toggleButton.Text = ""
+                toggleButton.BackgroundColor3 = defaultValue and Colors.KaliPink or Color3.fromRGB(60, 60, 70)
+                toggleButton.Size = UDim2.new(0, 45, 0, 20)
+                toggleButton.Position = UDim2.new(1, -55, 0.5, -10)
+                toggleButton.BorderSizePixel = 0
+                toggleButton.Parent = toggle
+                
+                createCorner(10).Parent = toggleButton
+                
+                -- Toggle circle
+                local toggleCircle = Instance.new("Frame")
+                toggleCircle.Size = UDim2.new(0, 16, 0, 16)
+                toggleCircle.Position = defaultValue and UDim2.new(0, 27, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+                toggleCircle.BackgroundColor3 = Colors.Text
+                toggleCircle.BorderSizePixel = 0
+                toggleCircle.Parent = toggleButton
+                
+                createCorner(8).Parent = toggleCircle
+                
+                local isToggled = defaultValue
+                
+                toggleButton.MouseButton1Click:Connect(function()
+                    isToggled = not isToggled
+                    
+                    TweenService:Create(toggleButton, AnimationInfo, {
+                        BackgroundColor3 = isToggled and Colors.KaliPink or Color3.fromRGB(60, 60, 70)
+                    }):Play()
+                    
+                    TweenService:Create(toggleCircle, AnimationInfo, {
+                        Position = isToggled and UDim2.new(0, 27, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+                    }):Play()
+                    
+                    callback(isToggled)
+                end)
+                
+                -- Hover effect
+                toggleButton.MouseEnter:Connect(function()
+                    TweenService:Create(toggleCircle, AnimationInfo, {
+                        Size = UDim2.new(0, 18, 0, 18),
+                        Position = isToggled and UDim2.new(0, 26, 0.5, -9) or UDim2.new(0, 1, 0.5, -9)
+                    }):Play()
+                end)
+                
+                toggleButton.MouseLeave:Connect(function()
+                    TweenService:Create(toggleCircle, AnimationInfo, {
+                        Size = UDim2.new(0, 16, 0, 16),
+                        Position = isToggled and UDim2.new(0, 27, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+                    }):Play()
+                end)
+                
+                local ToggleObj = {
+                    Frame = toggle,
+                    Button = toggleButton,
+                    Circle = toggleCircle,
+                    Value = isToggled,
+                    SetValue = function(self, value)
+                        isToggled = value
+                        TweenService:Create(toggleButton, AnimationInfo, {
+                            BackgroundColor3 = isToggled and Colors.KaliPink or Color3.fromRGB(60, 60, 70)
+                        }):Play()
+                        TweenService:Create(toggleCircle, AnimationInfo, {
+                            Position = isToggled and UDim2.new(0, 27, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+                        }):Play()
+                        callback(isToggled)
+                    end
+                }
+                
+                return ToggleObj
+            end
+            
+            -- Create slider function
+            function Section:CreateSlider(name, min, max, default, callback)
+                callback = callback or function() end
+                min = min or 0
+                max = max or 100
+                default = default or min
+                
+                local slider = Instance.new("Frame")
+                slider.Size = UDim2.new(1, 0, 0, 50)
+                slider.BackgroundColor3 = Colors.Background
+                slider.BorderSizePixel = 0
+                slider.Parent = sectionContainer
+                
+                createCorner(6).Parent = slider
+                createStroke(1, Colors.Border).Parent = slider
+                
+                local sliderLabel = Instance.new("TextLabel")
+                sliderLabel.Text = name
+                sliderLabel.Font = Enum.Font.Gotham
+                sliderLabel.TextSize = 14
+                sliderLabel.TextColor3 = Colors.Text
+                sliderLabel.BackgroundTransparency = 1
+                sliderLabel.Size = UDim2.new(1, -20, 0, 20)
+                sliderLabel.Position = UDim2.new(0, 15, 0, 5)
+                sliderLabel.TextXAlignment = Enum.TextXAlignment.Left
+                sliderLabel.Parent = slider
+                
+                createTextStroke(1, Color3.fromRGB(5, 5, 10)).Parent = sliderLabel
+                
+                -- Value display
+                local valueLabel = Instance.new("TextLabel")
+                valueLabel.Text = tostring(default)
+                valueLabel.Font = Enum.Font.GothamSemibold
+                valueLabel.TextSize = 14
+                valueLabel.TextColor3 = Colors.KaliPink
+                valueLabel.BackgroundTransparency = 1
+                valueLabel.Size = UDim2.new(0, 50, 0, 20)
+                valueLabel.Position = UDim2.new(1, -60, 0, 5)
+                valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+                valueLabel.Parent = slider
+                
+                createTextStroke(1, Color3.fromRGB(5, 5, 10)).Parent = valueLabel
+                
+                -- Slider background
+                local sliderBg = Instance.new("Frame")
+                sliderBg.Size = UDim2.new(1, -30, 0, 8)
+                sliderBg.Position = UDim2.new(0, 15, 0, 32)
+                sliderBg.BackgroundColor3 = Colors.Secondary
+                sliderBg.BorderSizePixel = 0
+                sliderBg.Parent = slider
+                
+                createCorner(4).Parent = sliderBg
+                
+                -- Slider fill
+                local sliderFill = Instance.new("Frame")
+                sliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+                sliderFill.BackgroundColor3 = Colors.KaliPink
+                sliderFill.BorderSizePixel = 0
+                sliderFill.Parent = sliderBg
+                
+                createCorner(4).Parent = sliderFill
+                
+                -- Slider knob
+                local sliderKnob = Instance.new("Frame")
+                sliderKnob.Size = UDim2.new(0, 16, 0, 16)
+                sliderKnob.Position = UDim2.new((default - min) / (max - min), -8, 0.5, -8)
+                sliderKnob.BackgroundColor3 = Colors.Text
+                sliderKnob.BorderSizePixel = 0
+                sliderKnob.Parent = sliderBg
+                
+                createCorner(8).Parent = sliderKnob
+                
+                -- Slider functionality
+                local isDragging = false
+                local currentValue = default
+                
+                local function updateSlider(value)
+                    value = math.clamp(value, min, max)
+                    value = math.floor(value + 0.5) -- Round to nearest integer
+                    
+                    currentValue = value
+                    valueLabel.Text = tostring(value)
+                    
+                    local percent = (value - min) / (max - min)
+                    TweenService:Create(sliderFill, FastAnimation, {
+                        Size = UDim2.new(percent, 0, 1, 0)
+                    }):Play()
+                    
+                    TweenService:Create(sliderKnob, FastAnimation, {
+                        Position = UDim2.new(percent, -8, 0.5, -8)
+                    }):Play()
+                    
+                    callback(value)
+                end
+                
+                sliderBg.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                        isDragging = true
+                        local relativeX = math.clamp((input.Position.X - sliderBg.AbsolutePosition.X) / sliderBg.AbsoluteSize.X, 0, 1)
+                        local value = min + (max - min) * relativeX
+                        updateSlider(value)
+                    end
+                end)
+                
+                sliderBg.InputEnded:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                        isDragging = false
+                    end
+                end)
+                
+                UserInputService.InputChanged:Connect(function(input)
+                    if isDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                        local relativeX = math.clamp((input.Position.X - sliderBg.AbsolutePosition.X) / sliderBg.AbsoluteSize.X, 0, 1)
+                        local value = min + (max - min) * relativeX
+                        updateSlider(value)
+                    end
+                end)
+                
+                -- Initialize slider
+                updateSlider(default)
+                
+                local SliderObj = {
+                    Frame = slider,
+                    Value = currentValue,
+                    SetValue = function(self, value)
+                        updateSlider(value)
+                    end
+                }
+                
+                return SliderObj
+            end
+            
+            -- Create dropdown function
+            function Section:CreateDropdown(name, options, callback)
+                callback = callback or function() end
+                options = options or {}
+                
+                local dropdown = Instance.new("Frame")
+                dropdown.Size = UDim2.new(1, 0, 0, 35)
+                dropdown.BackgroundColor3 = Colors.Background
+                dropdown.BorderSizePixel = 0
+                dropdown.Parent = sectionContainer
+                
+                createCorner(6).Parent = dropdown
+                createStroke(1, Colors.Border).Parent = dropdown
+                
+                local dropdownLabel = Instance.new("TextLabel")
+                dropdownLabel.Text = name
+                dropdownLabel.Font = Enum.Font.Gotham
+                dropdownLabel.TextSize = 14
+                dropdownLabel.TextColor3 = Colors.Text
+                dropdownLabel.BackgroundTransparency = 1
+                dropdownLabel.Size = UDim2.new(0.5, 0, 1, 0)
+                dropdownLabel.Position = UDim2.new(0, 15, 0, 0)
+                dropdownLabel.TextXAlignment = Enum.TextXAlignment.Left
+                dropdownLabel.Parent = dropdown
+                
+                createTextStroke(1, Color3.fromRGB(5, 5, 10)).Parent = dropdownLabel
+                
+                local selectedValue = type(options) == "table" and (#options > 0 and options[1] or "None") or "None"
+                local isOpen = false
+                
+                local dropdownButton = Instance.new("TextButton")
+                dropdownButton.Text = selectedValue .. " ▼"
+                dropdownButton.Font = Enum.Font.Gotham
+                dropdownButton.TextSize = 12
+                dropdownButton.TextColor3 = Colors.KaliPink
+                dropdownButton.BackgroundColor3 = Colors.Secondary
+                dropdownButton.Size = UDim2.new(0, 120, 0, 25)
+                dropdownButton.Position = UDim2.new(1, -130, 0.5, -12.5)
+                dropdownButton.BorderSizePixel = 0
+                dropdownButton.ZIndex = 5
+                dropdownButton.Parent = dropdown
+                
+                createCorner(4).Parent = dropdownButton
+                createStroke(1, Colors.Border).Parent = dropdownButton
+                createTextStroke(1, Color3.fromRGB(5, 5, 10)).Parent = dropdownButton
+                
+                -- Create dropdown container
+                local dropdownContainer = Instance.new("Frame")
                 dropdownContainer.Size = UDim2.new(0, 120, 0, 0)
+                dropdownContainer.Position = UDim2.new(1, -130, 1, 5)
+                dropdownContainer.BackgroundTransparency = 1
+                dropdownContainer.BorderSizePixel = 0
                 dropdownContainer.Visible = false
-            end)
+                dropdownContainer.ZIndex = 10
+                dropdownContainer.Parent = dropdown
+                
+                -- Dropdown list
+                local dropdownList = Instance.new("Frame")
+                dropdownList.Size = UDim2.new(1, 0, 1, 0)
+                dropdownList.Position = UDim2.new(0, 0, 0, 0)
+                dropdownList.BackgroundColor3 = Colors.DropdownBg
+                dropdownList.BorderSizePixel = 0
+                dropdownList.ZIndex = 10
+                dropdownList.Parent = dropdownContainer
+                
+                createCorner(4).Parent = dropdownList
+                createStroke(1, Colors.Border).Parent = dropdownList
+                
+                local listLayout = Instance.new("UIListLayout")
+                listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+                listLayout.Parent = dropdownList
+                
+                -- Create option buttons
+                local function createOptions()
+                    -- Clear existing options
+                    for _, child in ipairs(dropdownList:GetChildren()) do
+                        if child:IsA("TextButton") then
+                            child:Destroy()
+                        end
+                    end
+                    
+                    -- Add new options
+                    if type(options) == "table" then
+                        for i, option in ipairs(options) do
+                            local optionButton = Instance.new("TextButton")
+                            optionButton.Text = option
+                            optionButton.Font = Enum.Font.Gotham
+                            optionButton.TextSize = 12
+                            optionButton.TextColor3 = Colors.Text
+                            optionButton.BackgroundTransparency = 1
+                            optionButton.Size = UDim2.new(1, 0, 0, 25)
+                            optionButton.BorderSizePixel = 0
+                            optionButton.ZIndex = 11
+                            optionButton.Parent = dropdownList
+                            
+                            createTextStroke(1, Color3.fromRGB(5, 5, 10)).Parent = optionButton
+                            
+                            optionButton.MouseEnter:Connect(function()
+                                optionButton.BackgroundTransparency = 0
+                                optionButton.BackgroundColor3 = Colors.Secondary
+                            end)
+                            
+                            optionButton.MouseLeave:Connect(function()
+                                optionButton.BackgroundTransparency = 1
+                            end)
+                            
+                            optionButton.MouseButton1Click:Connect(function()
+                                selectedValue = option
+                                dropdownButton.Text = selectedValue .. " ▼"
+                                
+                                -- Close dropdown
+                                isOpen = false
+                                dropdownContainer.Size = UDim2.new(0, 120, 0, 0)
+                                dropdownContainer.Visible = false
+                                
+                                callback(selectedValue)
+                            end)
+                        end
+                    end
+                end
+                
+                createOptions()
+                
+                -- Toggle dropdown
+                dropdownButton.MouseButton1Click:Connect(function()
+                    isOpen = not isOpen
+                    
+                    if isOpen then
+                        dropdownButton.Text = selectedValue .. " ▲"
+                        dropdownContainer.Visible = true
+                        dropdownContainer.Size = UDim2.new(0, 120, 0, #options * 25)
+                    else
+                        dropdownButton.Text = selectedValue .. " ▼"
+                        dropdownContainer.Size = UDim2.new(0, 120, 0, 0)
+                        dropdownContainer.Visible = false
+                    end
+                end)
+                
+                -- Close dropdown when clicking elsewhere
+                UserInputService.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 and isOpen then
+                        local mousePos = UserInputService:GetMouseLocation()
+                        local buttonPos = dropdownButton.AbsolutePosition
+                        local buttonSize = dropdownButton.AbsoluteSize
+                        local listPos = dropdownList.AbsolutePosition
+                        local listSize = dropdownList.AbsoluteSize
+                        
+                        -- Check if click is outside dropdown area
+                        if not (mousePos.X >= buttonPos.X and mousePos.X <= buttonPos.X + buttonSize.X and
+                                mousePos.Y >= buttonPos.Y and mousePos.Y <= buttonPos.Y + buttonSize.Y) and
+                           not (mousePos.X >= listPos.X and mousePos.X <= listPos.X + listSize.X and
+                                mousePos.Y >= listPos.Y and mousePos.Y <= listPos.Y + listSize.Y) then
+                            isOpen = false
+                            dropdownButton.Text = selectedValue .. " ▼"
+                            dropdownContainer.Size = UDim2.new(0, 120, 0, 0)
+                            dropdownContainer.Visible = false
+                        end
+                    end
+                end)
+                
+                -- Hover effects
+                dropdownButton.MouseEnter:Connect(function()
+                    TweenService:Create(dropdownButton, AnimationInfo, {BackgroundColor3 = Colors.AccentHover}):Play()
+                end)
+                
+                dropdownButton.MouseLeave:Connect(function()
+                    TweenService:Create(dropdownButton, AnimationInfo, {BackgroundColor3 = Colors.Secondary}):Play()
+                end)
+                
+                local DropdownObj = {
+                    Frame = dropdown,
+                    Button = dropdownButton,
+                    Container = dropdownContainer,
+                    List = dropdownList,
+                    Value = selectedValue,
+                    SetValue = function(self, value)
+                        selectedValue = value
+                        dropdownButton.Text = selectedValue .. " ▼"
+                        callback(selectedValue)
+                    end,
+                    SetOptions = function(self, newOptions)
+                        options = newOptions
+                        createOptions()
+                        selectedValue = #options > 0 and options[1] or "None"
+                        dropdownButton.Text = selectedValue .. " ▼"
+                    end
+                }
+                
+                return DropdownObj
+            end
+            
+            -- Create button function
+            function Section:CreateButton(name, callback)
+                callback = callback or function() end
+                
+                local button = Instance.new("Frame")
+                button.Size = UDim2.new(1, 0, 0, 35)
+                button.BackgroundColor3 = Colors.Background
+                button.BorderSizePixel = 0
+                button.Parent = sectionContainer
+                
+                createCorner(6).Parent = button
+                createStroke(1, Colors.Border).Parent = button
+                
+                local buttonBtn = Instance.new("TextButton")
+                buttonBtn.Text = name
+                buttonBtn.Font = Enum.Font.GothamSemibold
+                buttonBtn.TextSize = 14
+                buttonBtn.TextColor3 = Colors.Text
+                buttonBtn.BackgroundColor3 = Colors.Secondary
+                buttonBtn.Size = UDim2.new(0, 120, 0, 25)
+                buttonBtn.Position = UDim2.new(0.5, -60, 0.5, -12.5)
+                buttonBtn.BorderSizePixel = 0
+                buttonBtn.Parent = button
+                
+                createCorner(4).Parent = buttonBtn
+                createStroke(1, Colors.Border).Parent = buttonBtn
+                createTextStroke(1, Color3.fromRGB(5, 5, 10)).Parent = buttonBtn
+                
+                buttonBtn.MouseButton1Click:Connect(function()
+                    TweenService:Create(buttonBtn, FastAnimation, {
+                        BackgroundColor3 = Colors.KaliPink,
+                        TextColor3 = Color3.fromRGB(255, 255, 255)
+                    }):Play()
+                    
+                    callback()
+                    
+                    wait(0.2)
+                    
+                    TweenService:Create(buttonBtn, AnimationInfo, {
+                        BackgroundColor3 = Colors.Secondary,
+                        TextColor3 = Colors.Text
+                    }):Play()
+                end)
+                
+                -- Hover effects
+                buttonBtn.MouseEnter:Connect(function()
+                    TweenService:Create(buttonBtn, AnimationInfo, {BackgroundColor3 = Colors.AccentHover}):Play()
+                end)
+                
+                buttonBtn.MouseLeave:Connect(function()
+                    TweenService:Create(buttonBtn, AnimationInfo, {BackgroundColor3 = Colors.Secondary}):Play()
+                end)
+                
+                local ButtonObj = {
+                    Frame = button,
+                    Button = buttonBtn,
+                    SetText = function(self, text)
+                        buttonBtn.Text = text
+                    end
+                }
+                
+                return ButtonObj
+            end
+            
+            Tab.Sections[name] = Section
+            return Section
         end
         
-        -- Toggle dropdown
-        dropdownButton.MouseButton1Click:Connect(function()
-            isOpen = not isOpen
-            
-            if isOpen then
-                dropdownButton.Text = selectedValue .. " ▲"
-                dropdownContainer.Visible = true
-                dropdownContainer.Size = UDim2.new(0, 120, 0, #options * 25)
-            else
-                dropdownButton.Text = selectedValue .. " ▼"
-                dropdownContainer.Size = UDim2.new(0, 120, 0, 0)
-                dropdownContainer.Visible = false
-            end
-        end)
-        
-        -- Close dropdown when clicking elsewhere
-        UserInputService.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 and isOpen then
-                local mousePos = UserInputService:GetMouseLocation()
-                local buttonPos = dropdownButton.AbsolutePosition
-                local buttonSize = dropdownButton.AbsoluteSize
-                local listPos = dropdownList.AbsolutePosition
-                local listSize = dropdownList.AbsoluteSize
-                
-                -- Check if click is outside dropdown area
-                if not (mousePos.X >= buttonPos.X and mousePos.X <= buttonPos.X + buttonSize.X and
-                        mousePos.Y >= buttonPos.Y and mousePos.Y <= buttonPos.Y + buttonSize.Y) and
-                   not (mousePos.X >= listPos.X and mousePos.X <= listPos.X + listSize.X and
-                        mousePos.Y >= listPos.Y and mousePos.Y <= listPos.Y + listSize.Y) then
-                    isOpen = false
-                    dropdownButton.Text = selectedValue .. " ▼"
-                    dropdownContainer.Size = UDim2.new(0, 120, 0, 0)
-                    dropdownContainer.Visible = false
-                end
-            end
-        end)
-        
-        -- Hover effects
-        dropdownButton.MouseEnter:Connect(function()
-            TweenService:Create(dropdownButton, AnimationInfo, {BackgroundColor3 = Colors.AccentHover}):Play()
-        end)
-        
-        dropdownButton.MouseLeave:Connect(function()
-            TweenService:Create(dropdownButton, AnimationInfo, {BackgroundColor3 = Colors.Secondary}):Play()
-        end)
-        
-        return dropdown
+        return Tab
     end
     
     return Window
