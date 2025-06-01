@@ -103,21 +103,21 @@ function KaliHub:CreateWindow(config)
     titleContainer.Parent = titleBar
     
     -- "Kali" text (pink with stroke)
-    local kaliText = Instance.new("TextLabel")
-    kaliText.Text = "Kali"
-    kaliText.Font = Enum.Font.GothamBold
-    kaliText.TextSize = 20
-    kaliText.TextColor3 = Colors.KaliPink
-    kaliText.BackgroundTransparency = 1
-    kaliText.Size = UDim2.new(0, 40, 1, 0)
-    kaliText.Position = UDim2.new(0, 0, 0, 0)
-    kaliText.TextXAlignment = Enum.TextXAlignment.Left
-    kaliText.TextYAlignment = Enum.TextYAlignment.Center
-    kaliText.Parent = titleContainer
-    
-    createTextStroke(2, Color3.fromRGB(15, 15, 25)).Parent = kaliText
-    
-    -- "Hub" text (white with stroke) - Reduced spacing further
+-- "Kali" text (pink)
+local kaliText = Instance.new("TextLabel")
+kaliText.Text = "Kali"
+kaliText.Font = Enum.Font.GothamBold
+kaliText.TextSize = 20
+kaliText.TextColor3 = Colors.KaliPink
+kaliText.BackgroundTransparency = 1
+kaliText.Size = UDim2.new(0, 40, 1, 0)
+kaliText.Position = UDim2.new(0, 0, 0, 0)
+kaliText.TextXAlignment = Enum.TextXAlignment.Left
+kaliText.TextYAlignment = Enum.TextYAlignment.Center
+kaliText.Parent = titleContainer
+createTextStroke(2, Color3.fromRGB(15, 15, 25)).Parent = kaliText
+
+    -- "Hub" text (white)
     local hubText = Instance.new("TextLabel")
     hubText.Text = "Hub"
     hubText.Font = Enum.Font.GothamBold
@@ -125,12 +125,39 @@ function KaliHub:CreateWindow(config)
     hubText.TextColor3 = Colors.HubWhite
     hubText.BackgroundTransparency = 1
     hubText.Size = UDim2.new(0, 40, 1, 0)
-    hubText.Position = UDim2.new(0, 37, 0, 0) -- Reduced from 40 to 37 for closer spacing
+    hubText.Position = UDim2.new(0, 37, 0, 0)
     hubText.TextXAlignment = Enum.TextXAlignment.Left
     hubText.TextYAlignment = Enum.TextYAlignment.Center
     hubText.Parent = titleContainer
-    
     createTextStroke(2, Color3.fromRGB(15, 15, 25)).Parent = hubText
+    
+    -- ":" text (green)
+    local colonText = Instance.new("TextLabel")
+    colonText.Text = ":"
+    colonText.Font = Enum.Font.GothamBold
+    colonText.TextSize = 20
+    colonText.TextColor3 = Color3.fromRGB(0, 255, 0)
+    colonText.BackgroundTransparency = 1
+    colonText.Size = UDim2.new(0, 10, 1, 0)
+    colonText.Position = UDim2.new(0, 72, 0, 0)
+    colonText.TextXAlignment = Enum.TextXAlignment.Left
+    colonText.TextYAlignment = Enum.TextYAlignment.Center
+    colonText.Parent = titleContainer
+    createTextStroke(2, Color3.fromRGB(15, 15, 25)).Parent = colonText
+    
+    -- "Blood Debt" text (red)
+    local gameText = Instance.new("TextLabel")
+    gameText.Text = "Blood Debt"
+    gameText.Font = Enum.Font.GothamBold
+    gameText.TextSize = 20
+    gameText.TextColor3 = Color3.fromRGB(255, 0, 0)
+    gameText.BackgroundTransparency = 1
+    gameText.Size = UDim2.new(0, 120, 1, 0)
+    gameText.Position = UDim2.new(0, 82, 0, 0)
+    gameText.TextXAlignment = Enum.TextXAlignment.Left
+    gameText.TextYAlignment = Enum.TextYAlignment.Center
+    gameText.Parent = titleContainer
+    createTextStroke(2, Color3.fromRGB(15, 15, 25)).Parent = gameText
     
     -- Hide button (changed from minimize)
     local hideButton = Instance.new("TextButton")
@@ -286,9 +313,9 @@ function KaliHub:CreateWindow(config)
     
     hideButton.MouseButton1Click:Connect(toggleVisibility)
     
-    -- Left Ctrl to hide/show
+    -- Right Ctrl to hide/show
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if not gameProcessed and input.KeyCode == Enum.KeyCode.LeftControl then
+        if not gameProcessed and input.KeyCode == Enum.KeyCode.RightControl then
             toggleVisibility()
         end
     end)
