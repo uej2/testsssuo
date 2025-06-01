@@ -133,13 +133,13 @@ createTextStroke(2, Color3.fromRGB(15, 15, 25)).Parent = kaliText
     
     -- ":" text (green)
     local colonText = Instance.new("TextLabel")
-    colonText.Text = ":"
+    colonText.Text = " :"
     colonText.Font = Enum.Font.GothamBold
     colonText.TextSize = 20
     colonText.TextColor3 = Color3.fromRGB(0, 255, 0)
     colonText.BackgroundTransparency = 1
     colonText.Size = UDim2.new(0, 10, 1, 0)
-    colonText.Position = UDim2.new(0, 105, 5, 0)
+    colonText.Position = UDim2.new(0, 105, 0, 5)
     colonText.TextXAlignment = Enum.TextXAlignment.Left
     colonText.TextYAlignment = Enum.TextYAlignment.Center
     colonText.Parent = titleContainer
@@ -147,13 +147,13 @@ createTextStroke(2, Color3.fromRGB(15, 15, 25)).Parent = kaliText
     
     -- "Blood Debt" text (red)
     local gameText = Instance.new("TextLabel")
-    gameText.Text = "Blood Debt"
+    gameText.Text = "  Blood Debt"
     gameText.Font = Enum.Font.GothamBold
     gameText.TextSize = 20
     gameText.TextColor3 = Color3.fromRGB(255, 0, 0)
     gameText.BackgroundTransparency = 1
     gameText.Size = UDim2.new(0, 120, 1, 0)
-    gameText.Position = UDim2.new(0, 115, 10, 0)
+    gameText.Position = UDim2.new(0, 115, 0, 5)
     gameText.TextXAlignment = Enum.TextXAlignment.Left
     gameText.TextYAlignment = Enum.TextYAlignment.Center
     gameText.Parent = titleContainer
