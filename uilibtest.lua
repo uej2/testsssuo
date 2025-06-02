@@ -1,25 +1,85 @@
 --[[
-    LabyModUI Library
-    A modern, sleek UI library for Roblox
+    Enhanced LabyModUI Library
+    A modern, feature-rich UI library for Roblox
     
     Features:
     - Windows with draggable functionality
     - Tabs and sections
-    - Toggles with callback functions
-    - Dropdowns with proper selection
-    - Sliders with value display
-    - Color pickers
-    - Labels and buttons
+    - Toggles, dropdowns, sliders, color pickers, keybinds
+    - Configuration saving/loading system
+    - Keybind toggle for menu visibility
+    - Enhanced visual styling with text outlines
+    - Auto-save functionality
 ]]
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local TextService = game:GetService("TextService")
+local HttpService = game:GetService("HttpService")
 
 local LabyModUI = {}
 LabyModUI.__index = LabyModUI
+
+-- Configuration system
+local ConfigSystem = {}
+ConfigSystem.__index = ConfigSystem
+
+function ConfigSystem.new()
+    local self = setmetatable({}, ConfigSystem)
+    self.configData = {}
+    self.autoSave = false
+    self.configName = "LabyModUI_Config"
+    return self
+end
+
+function ConfigSystem:saveConfig()
+    if not self.autoSave then return end
+    
+    local success, result = pcall(function()
+        writefile(self.configName .. ".json", HttpService:JSONEncode(self.configData))
+    end)
+    
+    if success then
+        print("Configuration saved successfully")
+    else
+        warn("Failed to save configuration: " .. tostring(result))
+    end
+end
+
+function ConfigSystem:loadConfig()
+    local success, result = pcall(function()
+        if isfile(self.configName .. ".json") then
+            return HttpService:JSONDecode(readfile(self.configName .. ".json"))
+        end
+        return {}
+    end)
+    
+    if success then
+        self.configData = result or {}
+        print("Configuration loaded successfully")
+        return true
+    else
+        warn("Failed to load configuration: " .. tostring(result))
+        self.configData = {}
+        return false
+    end
+end
+
+function ConfigSystem:setValue(key, value)
+    self.configData[key] = value
+    if self.autoSave then
+        self:saveConfig()
+    end
+end
+
+function ConfigSystem:getValue(key, default)
+    return self.configData[key] ~= nil and self.configData[key] or default
+end
+
+function ConfigSystem:setAutoSave(enabled)
+    self.autoSave = enabled
+end
 
 -- Utility functions
 local function createTween(instance, properties, duration, easingStyle, easingDirection)
@@ -33,6 +93,39 @@ local function createTween(instance, properties, duration, easingStyle, easingDi
     return tween
 end
 
+local function addTextOutline(textObject)
+    local outline = Instance.new("UIStroke")
+    outline.Color = Color3.fromRGB(0, 0, 0)
+    outline.Thickness = 1
+    outline.Transparency = 0.5
+    outline.Parent = textObject
+    return outline
+end
+
+local function getKeyName(keyCode)
+    local keyNames = {
+        [Enum.KeyCode.LeftShift] = "LShift",
+        [Enum.KeyCode.RightShift] = "RShift",
+        [Enum.KeyCode.LeftControl] = "LCtrl",
+        [Enum.KeyCode.RightControl] = "RCtrl",
+        [Enum.KeyCode.LeftAlt] = "LAlt",
+        [Enum.KeyCode.RightAlt] = "RAlt",
+        [Enum.KeyCode.CapsLock] = "Caps",
+        [Enum.KeyCode.Tab] = "Tab",
+        [Enum.KeyCode.Backspace] = "Backspace",
+        [Enum.KeyCode.Return] = "Enter",
+        [Enum.KeyCode.Space] = "Space",
+        [Enum.KeyCode.Delete] = "Delete",
+        [Enum.KeyCode.Home] = "Home",
+        [Enum.KeyCode.End] = "End",
+        [Enum.KeyCode.PageUp] = "PgUp",
+        [Enum.KeyCode.PageDown] = "PgDn",
+        [Enum.KeyCode.Insert] = "Insert"
+    }
+    
+    return keyNames[keyCode] or keyCode.Name
+end
+
 -- Create a new window
 function LabyModUI.new(config)
     local self = setmetatable({}, LabyModUI)
@@ -40,6 +133,7 @@ function LabyModUI.new(config)
     config = config or {}
     self.title = config.title or "LabyModUI"
     self.size = config.size or UDim2.new(0, 800, 0, 600)
+    self.toggleKey = config.toggleKey or Enum.KeyCode.K
     self.theme = config.theme or {
         background = Color3.fromRGB(15, 15, 20),
         topbar = Color3.fromRGB(20, 20, 28),
@@ -50,6 +144,13 @@ function LabyModUI.new(config)
         section = Color3.fromRGB(30, 30, 40),
         option = Color3.fromRGB(35, 35, 45)
     }
+    
+    -- Initialize configuration system
+    self.config = ConfigSystem.new()
+    self.config:loadConfig()
+    
+    -- UI elements registry for config saving
+    self.elements = {}
     
     -- Main ScreenGui
     self.screenGui = Instance.new("ScreenGui")
@@ -108,10 +209,12 @@ function LabyModUI.new(config)
     borderGradient.Parent = mainBorder
     
     -- Animate border gradient
-    local borderTween = createTween(borderGradient, {Rotation = 405}, 3, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
-    borderTween.Completed:Connect(function()
-        borderGradient.Rotation = 45
-        borderTween:Play()
+    spawn(function()
+        while self.screenGui.Parent do
+            createTween(borderGradient, {Rotation = 405}, 3, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+            wait(3)
+            borderGradient.Rotation = 45
+        end
     end)
     
     -- Top bar
@@ -139,6 +242,7 @@ function LabyModUI.new(config)
     self.titleLabel.Font = Enum.Font.GothamBold
     self.titleLabel.TextXAlignment = Enum.TextXAlignment.Left
     self.titleLabel.Parent = self.topBar
+    addTextOutline(self.titleLabel)
     
     -- Close button
     self.closeButton = Instance.new("TextButton")
@@ -151,13 +255,14 @@ function LabyModUI.new(config)
     self.closeButton.TextSize = 16
     self.closeButton.Font = Enum.Font.GothamBold
     self.closeButton.Parent = self.topBar
+    addTextOutline(self.closeButton)
     
     local closeCorner = Instance.new("UICorner")
     closeCorner.CornerRadius = UDim.new(0, 8)
     closeCorner.Parent = self.closeButton
     
     self.closeButton.MouseButton1Click:Connect(function()
-        self:destroy()
+        self:hide()
     end)
     
     -- Tab container
@@ -186,7 +291,38 @@ function LabyModUI.new(config)
     self.tabButtons = {}
     self.currentTab = nil
     
+    -- Setup toggle key
+    self:setupToggleKey()
+    
+    -- Load UI visibility state
+    local isVisible = self.config:getValue("ui_visible", true)
+    self.screenGui.Enabled = isVisible
+    
     return self
+end
+
+-- Setup toggle key functionality
+function LabyModUI:setupToggleKey()
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        
+        if input.KeyCode == self.toggleKey then
+            self:toggle()
+        end
+    end)
+end
+
+-- Toggle UI visibility
+function LabyModUI:toggle()
+    local isVisible = not self.screenGui.Enabled
+    self.screenGui.Enabled = isVisible
+    self.config:setValue("ui_visible", isVisible)
+end
+
+-- Set toggle key
+function LabyModUI:setToggleKey(keyCode)
+    self.toggleKey = keyCode
+    self.config:setValue("toggle_key", keyCode.Name)
 end
 
 -- Make the window draggable
@@ -245,6 +381,7 @@ function LabyModUI:addTab(name)
     tabButton.TextSize = 16
     tabButton.Font = Enum.Font.GothamBold
     tabButton.Parent = self.tabContainer
+    addTextOutline(tabButton)
     
     local tabCorner = Instance.new("UICorner")
     tabCorner.CornerRadius = UDim.new(0, 8)
@@ -276,7 +413,6 @@ function LabyModUI:addTab(name)
     
     -- Return tab object for method chaining
     return {
-        -- Add a section to this tab
         addSection = function(sectionName)
             return self:addSection(tab, sectionName)
         end
@@ -318,6 +454,7 @@ function LabyModUI:selectTab(name)
     end
     
     self.currentTab = name
+    self.config:setValue("current_tab", name)
 end
 
 -- Add a section to a tab
@@ -339,6 +476,20 @@ function LabyModUI:addSection(tab, name)
     local sectionCorner = Instance.new("UICorner")
     sectionCorner.CornerRadius = UDim.new(0, 12)
     sectionCorner.Parent = sectionContainer
+    
+    -- Section border
+    local sectionBorder = Instance.new("Frame")
+    sectionBorder.Size = UDim2.new(1, 2, 1, 2)
+    sectionBorder.Position = UDim2.new(0, -1, 0, -1)
+    sectionBorder.BackgroundColor3 = self.theme.accent
+    sectionBorder.BackgroundTransparency = 0.7
+    sectionBorder.BorderSizePixel = 0
+    sectionBorder.ZIndex = -1
+    sectionBorder.Parent = sectionContainer
+    
+    local borderCorner = Instance.new("UICorner")
+    borderCorner.CornerRadius = UDim.new(0, 13)
+    borderCorner.Parent = sectionBorder
     
     -- Section header
     local sectionHeader = Instance.new("Frame")
@@ -362,6 +513,7 @@ function LabyModUI:addSection(tab, name)
     sectionTitle.Font = Enum.Font.GothamBold
     sectionTitle.TextXAlignment = Enum.TextXAlignment.Left
     sectionTitle.Parent = sectionHeader
+    addTextOutline(sectionTitle)
     
     -- Content container with scrolling
     local scrollFrame = Instance.new("ScrollingFrame")
@@ -383,44 +535,45 @@ function LabyModUI:addSection(tab, name)
     
     -- Return section object for method chaining
     return {
-        -- Add a toggle to this section
         addToggle = function(toggleConfig)
             return self:addToggle(section, toggleConfig)
         end,
-        
-        -- Add a dropdown to this section
         addDropdown = function(dropdownConfig)
             return self:addDropdown(section, dropdownConfig)
         end,
-        
-        -- Add a slider to this section
         addSlider = function(sliderConfig)
             return self:addSlider(section, sliderConfig)
         end,
-        
-        -- Add a color picker to this section
         addColorPicker = function(colorConfig)
             return self:addColorPicker(section, colorConfig)
         end,
-        
-        -- Add a label to this section
+        addKeybind = function(keybindConfig)
+            return self:addKeybind(section, keybindConfig)
+        end,
         addLabel = function(labelConfig)
             return self:addLabel(section, labelConfig)
         end,
-        
-        -- Add a button to this section
         addButton = function(buttonConfig)
             return self:addButton(section, buttonConfig)
         end
     }
 end
 
+-- Register element for config saving
+function LabyModUI:registerElement(elementId, element)
+    self.elements[elementId] = element
+end
+
 -- Add a toggle to a section
 function LabyModUI:addToggle(section, config)
     config = config or {}
     local name = config.name or "Toggle"
+    local elementId = config.id or (section.name .. "_" .. name):gsub("%s+", "_"):lower()
     local default = config.default or false
     local callback = config.callback or function() end
+    
+    -- Load saved value
+    local savedValue = self.config:getValue(elementId, default)
     
     -- Create toggle container
     local option = Instance.new("Frame")
@@ -458,6 +611,7 @@ function LabyModUI:addToggle(section, config)
     label.Font = Enum.Font.GothamMedium
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Parent = option
+    addTextOutline(label)
     
     -- Toggle switch
     local toggleContainer = Instance.new("Frame")
@@ -468,7 +622,7 @@ function LabyModUI:addToggle(section, config)
     
     local toggle = Instance.new("Frame")
     toggle.Size = UDim2.new(1, 0, 1, 0)
-    toggle.BackgroundColor3 = default and self.theme.accent or Color3.fromRGB(60, 60, 70)
+    toggle.BackgroundColor3 = savedValue and self.theme.accent or Color3.fromRGB(60, 60, 70)
     toggle.BorderSizePixel = 0
     toggle.Parent = toggleContainer
     
@@ -478,7 +632,7 @@ function LabyModUI:addToggle(section, config)
     
     local toggleButton = Instance.new("Frame")
     toggleButton.Size = UDim2.new(0, 16, 0, 16)
-    toggleButton.Position = default and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+    toggleButton.Position = savedValue and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
     toggleButton.BackgroundColor3 = self.theme.text
     toggleButton.BorderSizePixel = 0
     toggleButton.Parent = toggle
@@ -495,7 +649,7 @@ function LabyModUI:addToggle(section, config)
     toggleBtn.Parent = toggle
     
     -- State tracking
-    local state = default
+    local state = savedValue
     
     -- Toggle function that can be called externally
     local function updateToggle(newState)
@@ -509,6 +663,7 @@ function LabyModUI:addToggle(section, config)
             Position = state and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
         })
         
+        self.config:setValue(elementId, state)
         callback(state)
     end
     
@@ -516,26 +671,40 @@ function LabyModUI:addToggle(section, config)
         updateToggle(not state)
     end)
     
+    -- Call callback with initial value
+    callback(savedValue)
+    
     -- Increment element count
     section.elementCount = section.elementCount + 1
     
     -- Update canvas size
     section.content.CanvasSize = UDim2.new(0, 0, 0, section.elementCount * 45 + 20)
     
-    -- Return toggle API
-    return {
+    -- Register element
+    local element = {
         setValue = updateToggle,
-        getValue = function() return state end
+        getValue = function() return state end,
+        type = "toggle"
     }
+    self:registerElement(elementId, element)
+    
+    return element
 end
 
--- Add a dropdown to a section
+-- Add a dropdown to a section (ENHANCED WITH FIXED SELECTION)
 function LabyModUI:addDropdown(section, config)
     config = config or {}
     local name = config.name or "Dropdown"
+    local elementId = config.id or (section.name .. "_" .. name):gsub("%s+", "_"):lower()
     local options = config.options or {"Option 1", "Option 2", "Option 3"}
     local default = config.default or options[1]
     local callback = config.callback or function() end
+    
+    -- Load saved value
+    local savedValue = self.config:getValue(elementId, default)
+    if not table.find(options, savedValue) then
+        savedValue = default
+    end
     
     -- Create dropdown container
     local option = Instance.new("Frame")
@@ -561,6 +730,7 @@ function LabyModUI:addDropdown(section, config)
     label.Font = Enum.Font.GothamMedium
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Parent = option
+    addTextOutline(label)
     
     -- Dropdown button
     local dropdown = Instance.new("TextButton")
@@ -568,11 +738,12 @@ function LabyModUI:addDropdown(section, config)
     dropdown.Position = UDim2.new(1, -130, 0.5, -12.5)
     dropdown.BackgroundColor3 = self.theme.section
     dropdown.BorderSizePixel = 0
-    dropdown.Text = default .. " ▼"
+    dropdown.Text = savedValue .. " ▼"
     dropdown.TextColor3 = self.theme.text
     dropdown.TextSize = 12
     dropdown.Font = Enum.Font.GothamMedium
     dropdown.Parent = option
+    addTextOutline(dropdown)
     
     local dropdownCorner = Instance.new("UICorner")
     dropdownCorner.CornerRadius = UDim.new(0, 4)
@@ -593,8 +764,42 @@ function LabyModUI:addDropdown(section, config)
     menuCorner.CornerRadius = UDim.new(0, 4)
     menuCorner.Parent = dropdownMenu
     
+    -- Menu border
+    local menuBorder = Instance.new("Frame")
+    menuBorder.Size = UDim2.new(1, 2, 1, 2)
+    menuBorder.Position = UDim2.new(0, -1, 0, -1)
+    menuBorder.BackgroundColor3 = self.theme.accent
+    menuBorder.BackgroundTransparency = 0.5
+    menuBorder.BorderSizePixel = 0
+    menuBorder.ZIndex = 14
+    menuBorder.Parent = dropdownMenu
+    
+    local menuBorderCorner = Instance.new("UICorner")
+    menuBorderCorner.CornerRadius = UDim.new(0, 5)
+    menuBorderCorner.Parent = menuBorder
+    
     -- Current selection tracking
-    local currentValue = default
+    local currentValue = savedValue
+    
+    -- Function to update dropdown value externally
+    local function updateDropdown(newValue)
+        if table.find(options, newValue) then
+            currentValue = newValue
+            dropdown.Text = currentValue .. " ▼"
+            
+            -- Update all option appearances
+            for _, child in pairs(dropdownMenu:GetChildren()) do
+                if child:IsA("TextButton") then
+                    local isSelected = child.Text == currentValue
+                    child.BackgroundColor3 = isSelected and self.theme.accent or self.theme.section
+                    child.TextColor3 = isSelected and self.theme.text or Color3.fromRGB(200, 200, 210)
+                end
+            end
+            
+            self.config:setValue(elementId, currentValue)
+            callback(currentValue)
+        end
+    end
     
     -- Create dropdown options
     for i, optionText in ipairs(options) do
@@ -609,6 +814,7 @@ function LabyModUI:addDropdown(section, config)
         optionBtn.Font = Enum.Font.GothamMedium
         optionBtn.ZIndex = 16
         optionBtn.Parent = dropdownMenu
+        addTextOutline(optionBtn)
         
         -- Hover effect
         optionBtn.MouseEnter:Connect(function()
@@ -629,50 +835,12 @@ function LabyModUI:addDropdown(section, config)
             end
         end)
         
-        -- Selection
+        -- Selection - FIXED: Now properly updates the dropdown text and saves config
         optionBtn.MouseButton1Click:Connect(function()
-            -- Update dropdown value
-            local oldValue = currentValue
-            currentValue = optionText
-            dropdown.Text = currentValue .. " ▼"
+            updateDropdown(optionText)
             dropdownMenu.Visible = false
-            
-            -- Update all option appearances
-            for _, child in pairs(dropdownMenu:GetChildren()) do
-                if child:IsA("TextButton") then
-                    local isSelected = child.Text == currentValue
-                    createTween(child, {
-                        BackgroundColor3 = isSelected and self.theme.accent or self.theme.section,
-                        TextColor3 = isSelected and self.theme.text or Color3.fromRGB(200, 200, 210)
-                    })
-                end
-            end
-            
-            -- Call callback if value changed
-            if oldValue ~= currentValue then
-                callback(currentValue)
-            end
+            isOpen = false
         end)
-    end
-    
-    -- Function to update dropdown value externally
-    local function updateDropdown(newValue)
-        if table.find(options, newValue) then
-            -- Update dropdown value
-            currentValue = newValue
-            dropdown.Text = currentValue .. " ▼"
-            
-            -- Update all option appearances
-            for _, child in pairs(dropdownMenu:GetChildren()) do
-                if child:IsA("TextButton") then
-                    local isSelected = child.Text == currentValue
-                    child.BackgroundColor3 = isSelected and self.theme.accent or self.theme.section
-                    child.TextColor3 = isSelected and self.theme.text or Color3.fromRGB(200, 200, 210)
-                end
-            end
-            
-            callback(currentValue)
-        end
     end
     
     -- Dropdown toggle
@@ -684,7 +852,8 @@ function LabyModUI:addDropdown(section, config)
     end)
     
     -- Close dropdown when clicking outside
-    UserInputService.InputBegan:Connect(function(input)
+    local closeConnection
+    closeConnection = UserInputService.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 and isOpen then
             local mouse = Players.LocalPlayer:GetMouse()
             if mouse.Target and not dropdownMenu:IsAncestorOf(mouse.Target) and mouse.Target ~= dropdown then
@@ -695,14 +864,17 @@ function LabyModUI:addDropdown(section, config)
         end
     end)
     
+    -- Call callback with initial value
+    callback(savedValue)
+    
     -- Increment element count
     section.elementCount = section.elementCount + 1
     
     -- Update canvas size
     section.content.CanvasSize = UDim2.new(0, 0, 0, section.elementCount * 45 + 20)
     
-    -- Return dropdown API
-    return {
+    -- Register element
+    local element = {
         setValue = updateDropdown,
         getValue = function() return currentValue end,
         refresh = function(newOptions)
@@ -718,9 +890,7 @@ function LabyModUI:addDropdown(section, config)
             
             -- If current value is not in new options, reset to first option
             if not table.find(options, currentValue) and #options > 0 then
-                currentValue = options[1]
-                dropdown.Text = currentValue .. " ▼"
-                callback(currentValue)
+                updateDropdown(options[1])
             end
             
             -- Create new option buttons
@@ -736,6 +906,7 @@ function LabyModUI:addDropdown(section, config)
                 optionBtn.Font = Enum.Font.GothamMedium
                 optionBtn.ZIndex = 16
                 optionBtn.Parent = dropdownMenu
+                addTextOutline(optionBtn)
                 
                 -- Hover effect
                 optionBtn.MouseEnter:Connect(function()
@@ -758,44 +929,33 @@ function LabyModUI:addDropdown(section, config)
                 
                 -- Selection
                 optionBtn.MouseButton1Click:Connect(function()
-                    -- Update dropdown value
-                    local oldValue = currentValue
-                    currentValue = optionText
-                    dropdown.Text = currentValue .. " ▼"
+                    updateDropdown(optionText)
                     dropdownMenu.Visible = false
                     isOpen = false
-                    
-                    -- Update all option appearances
-                    for _, child in pairs(dropdownMenu:GetChildren()) do
-                        if child:IsA("TextButton") then
-                            local isSelected = child.Text == currentValue
-                            createTween(child, {
-                                BackgroundColor3 = isSelected and self.theme.accent or self.theme.section,
-                                TextColor3 = isSelected and self.theme.text or Color3.fromRGB(200, 200, 210)
-                            })
-                        end
-                    end
-                    
-                    -- Call callback if value changed
-                    if oldValue ~= currentValue then
-                        callback(currentValue)
-                    end
                 end)
             end
-        end
+        end,
+        type = "dropdown"
     }
+    self:registerElement(elementId, element)
+    
+    return element
 end
 
 -- Add a slider to a section
 function LabyModUI:addSlider(section, config)
     config = config or {}
     local name = config.name or "Slider"
+    local elementId = config.id or (section.name .. "_" .. name):gsub("%s+", "_"):lower()
     local min = config.min or 0
     local max = config.max or 100
     local default = math.clamp(config.default or min, min, max)
     local increment = config.increment or 1
     local suffix = config.suffix or ""
     local callback = config.callback or function() end
+    
+    -- Load saved value
+    local savedValue = math.clamp(self.config:getValue(elementId, default), min, max)
     
     -- Create slider container
     local option = Instance.new("Frame")
@@ -821,18 +981,20 @@ function LabyModUI:addSlider(section, config)
     label.Font = Enum.Font.GothamMedium
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Parent = option
+    addTextOutline(label)
     
     -- Value display
     local valueDisplay = Instance.new("TextLabel")
     valueDisplay.Size = UDim2.new(0, 50, 0, 20)
     valueDisplay.Position = UDim2.new(1, -60, 0, 5)
     valueDisplay.BackgroundTransparency = 1
-    valueDisplay.Text = tostring(default) .. suffix
+    valueDisplay.Text = tostring(savedValue) .. suffix
     valueDisplay.TextColor3 = self.theme.accent
     valueDisplay.TextSize = 14
     valueDisplay.Font = Enum.Font.GothamBold
     valueDisplay.TextXAlignment = Enum.TextXAlignment.Right
     valueDisplay.Parent = option
+    addTextOutline(valueDisplay)
     
     -- Slider background
     local sliderBg = Instance.new("Frame")
@@ -850,7 +1012,7 @@ function LabyModUI:addSlider(section, config)
     -- Slider fill
     local sliderFill = Instance.new("Frame")
     sliderFill.Name = "SliderFill"
-    sliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+    sliderFill.Size = UDim2.new((savedValue - min) / (max - min), 0, 1, 0)
     sliderFill.BackgroundColor3 = self.theme.accent
     sliderFill.BorderSizePixel = 0
     sliderFill.Parent = sliderBg
@@ -863,7 +1025,7 @@ function LabyModUI:addSlider(section, config)
     local sliderKnob = Instance.new("Frame")
     sliderKnob.Name = "SliderKnob"
     sliderKnob.Size = UDim2.new(0, 12, 0, 12)
-    sliderKnob.Position = UDim2.new((default - min) / (max - min), -6, 0.5, -6)
+    sliderKnob.Position = UDim2.new((savedValue - min) / (max - min), -6, 0.5, -6)
     sliderKnob.BackgroundColor3 = self.theme.text
     sliderKnob.BorderSizePixel = 0
     sliderKnob.ZIndex = 2
@@ -875,7 +1037,7 @@ function LabyModUI:addSlider(section, config)
     
     -- Slider functionality
     local isDragging = false
-    local currentValue = default
+    local currentValue = savedValue
     
     -- Function to update slider value
     local function updateSlider(value)
@@ -891,6 +1053,7 @@ function LabyModUI:addSlider(section, config)
             sliderFill.Size = UDim2.new(percent, 0, 1, 0)
             sliderKnob.Position = UDim2.new(percent, -6, 0.5, -6)
             
+            self.config:setValue(elementId, value)
             callback(value)
         end
     end
@@ -931,29 +1094,45 @@ function LabyModUI:addSlider(section, config)
         end
     end)
     
+    -- Call callback with initial value
+    callback(savedValue)
+    
     -- Increment element count
     section.elementCount = section.elementCount + 1
     
     -- Update canvas size
     section.content.CanvasSize = UDim2.new(0, 0, 0, section.elementCount * 45 + 20)
     
-    -- Return slider API
-    return {
+    -- Register element
+    local element = {
         setValue = function(value)
             updateSlider(value)
         end,
         getValue = function()
             return currentValue
-        end
+        end,
+        type = "slider"
     }
+    self:registerElement(elementId, element)
+    
+    return element
 end
 
 -- Add a color picker to a section
 function LabyModUI:addColorPicker(section, config)
     config = config or {}
     local name = config.name or "Color"
+    local elementId = config.id or (section.name .. "_" .. name):gsub("%s+", "_"):lower()
     local default = config.default or Color3.fromRGB(255, 255, 255)
     local callback = config.callback or function() end
+    
+    -- Load saved value
+    local savedValue = self.config:getValue(elementId, {default.R, default.G, default.B})
+    if type(savedValue) == "table" then
+        savedValue = Color3.fromRGB(savedValue[1] * 255, savedValue[2] * 255, savedValue[3] * 255)
+    else
+        savedValue = default
+    end
     
     -- Create color picker container
     local option = Instance.new("Frame")
@@ -979,12 +1158,13 @@ function LabyModUI:addColorPicker(section, config)
     label.Font = Enum.Font.GothamMedium
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Parent = option
+    addTextOutline(label)
     
     -- Color preview
     local colorPreview = Instance.new("TextButton")
     colorPreview.Size = UDim2.new(0, 25, 0, 25)
     colorPreview.Position = UDim2.new(1, -35, 0.5, -12.5)
-    colorPreview.BackgroundColor3 = default
+    colorPreview.BackgroundColor3 = savedValue
     colorPreview.BorderSizePixel = 0
     colorPreview.Text = ""
     colorPreview.Parent = option
@@ -993,13 +1173,28 @@ function LabyModUI:addColorPicker(section, config)
     colorCorner.CornerRadius = UDim.new(0, 4)
     colorCorner.Parent = colorPreview
     
+    -- Color border
+    local colorBorder = Instance.new("Frame")
+    colorBorder.Size = UDim2.new(1, 2, 1, 2)
+    colorBorder.Position = UDim2.new(0, -1, 0, -1)
+    colorBorder.BackgroundColor3 = self.theme.accent
+    colorBorder.BackgroundTransparency = 0.5
+    colorBorder.BorderSizePixel = 0
+    colorBorder.ZIndex = -1
+    colorBorder.Parent = colorPreview
+    
+    local borderCorner = Instance.new("UICorner")
+    borderCorner.CornerRadius = UDim.new(0, 5)
+    borderCorner.Parent = colorBorder
+    
     -- Current color value
-    local currentColor = default
+    local currentColor = savedValue
     
     -- Function to update color
     local function updateColor(color)
         currentColor = color
         colorPreview.BackgroundColor3 = color
+        self.config:setValue(elementId, {color.R, color.G, color.B})
         callback(color)
     end
     
@@ -1008,17 +1203,139 @@ function LabyModUI:addColorPicker(section, config)
         self:openColorPicker(colorPreview, currentColor, updateColor)
     end)
     
+    -- Call callback with initial value
+    callback(savedValue)
+    
     -- Increment element count
     section.elementCount = section.elementCount + 1
     
     -- Update canvas size
     section.content.CanvasSize = UDim2.new(0, 0, 0, section.elementCount * 45 + 20)
     
-    -- Return color picker API
-    return {
+    -- Register element
+    local element = {
         setValue = updateColor,
-        getValue = function() return currentColor end
+        getValue = function() return currentColor end,
+        type = "colorpicker"
     }
+    self:registerElement(elementId, element)
+    
+    return element
+end
+
+-- Add a keybind to a section
+function LabyModUI:addKeybind(section, config)
+    config = config or {}
+    local name = config.name or "Keybind"
+    local elementId = config.id or (section.name .. "_" .. name):gsub("%s+", "_"):lower()
+    local default = config.default or Enum.KeyCode.F
+    local callback = config.callback or function() end
+    
+    -- Load saved value
+    local savedKeyName = self.config:getValue(elementId, default.Name)
+    local savedKey = Enum.KeyCode[savedKeyName] or default
+    
+    -- Create keybind container
+    local option = Instance.new("Frame")
+    option.Name = name .. "Option"
+    option.Size = UDim2.new(1, -20, 0, 40)
+    option.Position = UDim2.new(0, 10, 0, section.elementCount * 45 + 10)
+    option.BackgroundColor3 = self.theme.option
+    option.BorderSizePixel = 0
+    option.Parent = section.content
+    
+    local optionCorner = Instance.new("UICorner")
+    optionCorner.CornerRadius = UDim.new(0, 6)
+    optionCorner.Parent = option
+    
+    -- Label
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.6, 0, 1, 0)
+    label.Position = UDim2.new(0, 15, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = name
+    label.TextColor3 = self.theme.text
+    label.TextSize = 14
+    label.Font = Enum.Font.GothamMedium
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = option
+    addTextOutline(label)
+    
+    -- Keybind button
+    local keybindButton = Instance.new("TextButton")
+    keybindButton.Size = UDim2.new(0, 80, 0, 25)
+    keybindButton.Position = UDim2.new(1, -90, 0.5, -12.5)
+    keybindButton.BackgroundColor3 = self.theme.section
+    keybindButton.BorderSizePixel = 0
+    keybindButton.Text = getKeyName(savedKey)
+    keybindButton.TextColor3 = self.theme.text
+    keybindButton.TextSize = 12
+    keybindButton.Font = Enum.Font.GothamMedium
+    keybindButton.Parent = option
+    addTextOutline(keybindButton)
+    
+    local keybindCorner = Instance.new("UICorner")
+    keybindCorner.CornerRadius = UDim.new(0, 4)
+    keybindCorner.Parent = keybindButton
+    
+    -- Current key tracking
+    local currentKey = savedKey
+    local isBinding = false
+    
+    -- Function to update keybind
+    local function updateKeybind(newKey)
+        currentKey = newKey
+        keybindButton.Text = getKeyName(newKey)
+        self.config:setValue(elementId, newKey.Name)
+    end
+    
+    -- Keybind functionality
+    local bindConnection
+    keybindButton.MouseButton1Click:Connect(function()
+        if isBinding then return end
+        
+        isBinding = true
+        keybindButton.Text = "Press Key..."
+        keybindButton.BackgroundColor3 = self.theme.accent
+        
+        if bindConnection then
+            bindConnection:Disconnect()
+        end
+        
+        bindConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+            if input.UserInputType == Enum.UserInputType.Keyboard then
+                updateKeybind(input.KeyCode)
+                isBinding = false
+                keybindButton.BackgroundColor3 = self.theme.section
+                bindConnection:Disconnect()
+            end
+        end)
+    end)
+    
+    -- Key press detection
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed or isBinding then return end
+        
+        if input.KeyCode == currentKey then
+            callback(currentKey)
+        end
+    end)
+    
+    -- Increment element count
+    section.elementCount = section.elementCount + 1
+    
+    -- Update canvas size
+    section.content.CanvasSize = UDim2.new(0, 0, 0, section.elementCount * 45 + 20)
+    
+    -- Register element
+    local element = {
+        setValue = updateKeybind,
+        getValue = function() return currentKey end,
+        type = "keybind"
+    }
+    self:registerElement(elementId, element)
+    
+    return element
 end
 
 -- Open color picker
@@ -1026,8 +1343,8 @@ function LabyModUI:openColorPicker(colorPreview, initialColor, callback)
     -- Color picker frame
     local colorPicker = Instance.new("Frame")
     colorPicker.Name = "ColorPicker"
-    colorPicker.Size = UDim2.new(0, 200, 0, 180)
-    colorPicker.Position = UDim2.new(0.5, -100, 0.5, -90)
+    colorPicker.Size = UDim2.new(0, 220, 0, 200)
+    colorPicker.Position = UDim2.new(0.5, -110, 0.5, -100)
     colorPicker.BackgroundColor3 = self.theme.section
     colorPicker.BorderSizePixel = 0
     colorPicker.ZIndex = 25
@@ -1037,36 +1354,54 @@ function LabyModUI:openColorPicker(colorPreview, initialColor, callback)
     pickerCorner.CornerRadius = UDim.new(0, 8)
     pickerCorner.Parent = colorPicker
     
+    -- Color picker border
+    local pickerBorder = Instance.new("Frame")
+    pickerBorder.Size = UDim2.new(1, 2, 1, 2)
+    pickerBorder.Position = UDim2.new(0, -1, 0, -1)
+    pickerBorder.BackgroundColor3 = self.theme.accent
+    pickerBorder.BorderSizePixel = 0
+    pickerBorder.ZIndex = 24
+    pickerBorder.Parent = colorPicker
+    
+    local pickerBorderCorner = Instance.new("UICorner")
+    pickerBorderCorner.CornerRadius = UDim.new(0, 9)
+    pickerBorderCorner.Parent = pickerBorder
+    
     -- Title
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1, 0, 0, 30)
     title.BackgroundTransparency = 1
-    title.Text = "Choose Color"
+    title.Text = "🎨 Choose Color"
     title.TextColor3 = self.theme.text
     title.TextSize = 14
     title.Font = Enum.Font.GothamBold
     title.ZIndex = 26
     title.Parent = colorPicker
+    addTextOutline(title)
     
     -- Color grid
     local colors = {
-        -- Row 1
-        Color3.fromRGB(255, 255, 255), Color3.fromRGB(200, 200, 200), Color3.fromRGB(127, 127, 127), Color3.fromRGB(0, 0, 0),
-        -- Row 2
-        Color3.fromRGB(255, 0, 0), Color3.fromRGB(255, 127, 0), Color3.fromRGB(255, 255, 0), Color3.fromRGB(0, 255, 0),
-        -- Row 3
-        Color3.fromRGB(0, 255, 255), Color3.fromRGB(0, 0, 255), Color3.fromRGB(127, 0, 255), Color3.fromRGB(255, 0, 255),
-        -- Row 4
-        Color3.fromRGB(255, 100, 100), Color3.fromRGB(100, 200, 100), Color3.fromRGB(100, 100, 255), Color3.fromRGB(255, 255, 100)
+        -- Row 1: Grayscale
+        Color3.fromRGB(255, 255, 255), Color3.fromRGB(200, 200, 200), Color3.fromRGB(127, 127, 127), Color3.fromRGB(64, 64, 64), Color3.fromRGB(0, 0, 0),
+        -- Row 2: Reds
+        Color3.fromRGB(255, 0, 0), Color3.fromRGB(255, 127, 127), Color3.fromRGB(200, 0, 0), Color3.fromRGB(127, 0, 0), Color3.fromRGB(64, 0, 0),
+        -- Row 3: Oranges/Yellows
+        Color3.fromRGB(255, 127, 0), Color3.fromRGB(255, 255, 0), Color3.fromRGB(255, 255, 127), Color3.fromRGB(200, 200, 0), Color3.fromRGB(127, 127, 0),
+        -- Row 4: Greens
+        Color3.fromRGB(0, 255, 0), Color3.fromRGB(127, 255, 127), Color3.fromRGB(0, 200, 0), Color3.fromRGB(0, 127, 0), Color3.fromRGB(0, 64, 0),
+        -- Row 5: Cyans/Blues
+        Color3.fromRGB(0, 255, 255), Color3.fromRGB(0, 127, 255), Color3.fromRGB(0, 0, 255), Color3.fromRGB(0, 0, 200), Color3.fromRGB(0, 0, 127),
+        -- Row 6: Purples/Magentas
+        Color3.fromRGB(127, 0, 255), Color3.fromRGB(255, 0, 255), Color3.fromRGB(255, 127, 255), Color3.fromRGB(200, 0, 200), Color3.fromRGB(127, 0, 127)
     }
     
     for i, color in ipairs(colors) do
-        local row = math.floor((i-1) / 4)
-        local col = (i-1) % 4
+        local row = math.floor((i-1) / 5)
+        local col = (i-1) % 5
         
         local colorBtn = Instance.new("TextButton")
-        colorBtn.Size = UDim2.new(0, 30, 0, 30)
-        colorBtn.Position = UDim2.new(0, 20 + col * 40, 0, 40 + row * 35)
+        colorBtn.Size = UDim2.new(0, 30, 0, 25)
+        colorBtn.Position = UDim2.new(0, 15 + col * 38, 0, 40 + row * 27)
         colorBtn.BackgroundColor3 = color
         colorBtn.BorderSizePixel = 0
         colorBtn.Text = ""
@@ -1076,6 +1411,29 @@ function LabyModUI:openColorPicker(colorPreview, initialColor, callback)
         local btnCorner = Instance.new("UICorner")
         btnCorner.CornerRadius = UDim.new(0, 4)
         btnCorner.Parent = colorBtn
+        
+        -- Color button border
+        local colorBtnBorder = Instance.new("Frame")
+        colorBtnBorder.Size = UDim2.new(1, 2, 1, 2)
+        colorBtnBorder.Position = UDim2.new(0, -1, 0, -1)
+        colorBtnBorder.BackgroundColor3 = self.theme.accent
+        colorBtnBorder.BackgroundTransparency = 0.7
+        colorBtnBorder.BorderSizePixel = 0
+        colorBtnBorder.ZIndex = 26
+        colorBtnBorder.Parent = colorBtn
+        
+        local colorBtnBorderCorner = Instance.new("UICorner")
+        colorBtnBorderCorner.CornerRadius = UDim.new(0, 5)
+        colorBtnBorderCorner.Parent = colorBtnBorder
+        
+        -- Hover effect
+        colorBtn.MouseEnter:Connect(function()
+            createTween(colorBtnBorder, {BackgroundTransparency = 0.3})
+        end)
+        
+        colorBtn.MouseLeave:Connect(function()
+            createTween(colorBtnBorder, {BackgroundTransparency = 0.7})
+        end)
         
         colorBtn.MouseButton1Click:Connect(function()
             callback(color)
@@ -1095,6 +1453,7 @@ function LabyModUI:openColorPicker(colorPreview, initialColor, callback)
     closeBtn.Font = Enum.Font.GothamMedium
     closeBtn.ZIndex = 27
     closeBtn.Parent = colorPicker
+    addTextOutline(closeBtn)
     
     local closeCorner = Instance.new("UICorner")
     closeCorner.CornerRadius = UDim.new(0, 4)
@@ -1134,6 +1493,7 @@ function LabyModUI:addLabel(section, config)
     label.Font = Enum.Font.GothamMedium
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Parent = option
+    addTextOutline(label)
     
     -- Increment element count
     section.elementCount = section.elementCount + 1
@@ -1148,7 +1508,8 @@ function LabyModUI:addLabel(section, config)
         end,
         getText = function()
             return label.Text
-        end
+        end,
+        type = "label"
     }
 end
 
@@ -1182,6 +1543,7 @@ function LabyModUI:addButton(section, config)
     button.TextSize = 14
     button.Font = Enum.Font.GothamBold
     button.Parent = option
+    addTextOutline(button)
     
     local buttonCorner = Instance.new("UICorner")
     buttonCorner.CornerRadius = UDim.new(0, 4)
@@ -1219,22 +1581,55 @@ function LabyModUI:addButton(section, config)
         end,
         getText = function()
             return button.Text
-        end
+        end,
+        type = "button"
     }
+end
+
+-- Configuration management functions
+function LabyModUI:saveConfig(configName)
+    configName = configName or "default"
+    self.config.configName = "LabyModUI_" .. configName
+    self.config:saveConfig()
+end
+
+function LabyModUI:loadConfig(configName)
+    configName = configName or "default"
+    self.config.configName = "LabyModUI_" .. configName
+    local success = self.config:loadConfig()
+    
+    if success then
+        -- Apply loaded values to all elements
+        for elementId, element in pairs(self.elements) do
+            local savedValue = self.config:getValue(elementId)
+            if savedValue ~= nil and element.setValue then
+                element.setValue(savedValue)
+            end
+        end
+    end
+    
+    return success
+end
+
+function LabyModUI:setAutoSave(enabled)
+    self.config:setAutoSave(enabled)
 end
 
 -- Show the UI
 function LabyModUI:show()
     self.screenGui.Enabled = true
+    self.config:setValue("ui_visible", true)
 end
 
 -- Hide the UI
 function LabyModUI:hide()
     self.screenGui.Enabled = false
+    self.config:setValue("ui_visible", false)
 end
 
 -- Destroy the UI
 function LabyModUI:destroy()
+    self.config:saveConfig()
     self.screenGui:Destroy()
 end
 
